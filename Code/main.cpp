@@ -3,7 +3,19 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
+void key_callback(GLFWwindow* window, int key, int, int action, int)
+{
+    if (action == GLFW_PRESS)
+    {
+        if (key == GLFW_KEY_ESCAPE)
+        {
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
+    }
+}
 
 int main()
 {
@@ -19,7 +31,16 @@ int main()
         return -1;
     }
 
+    glfwSetKeyCallback(window, key_callback);
     glfwMakeContextCurrent(window);
+
+    if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress))
+    {
+        glfwDestroyWindow(window);
+        glfwTerminate();
+
+        return -1;
+    }
 
     ImGui::CreateContext();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -37,7 +58,7 @@ int main()
 
         ImGui::Render();
 
-        //glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
