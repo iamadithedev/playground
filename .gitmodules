@@ -4,3 +4,6 @@
 [submodule "Libraries/Editor"]
 	path = Libraries/Editor
 	url = https://github.com/iamadithedev/editor-libraries.git
+[submodule "Engine"]
+	path = Engine
+	url = https://github.com/iamadithedev/engine.git
