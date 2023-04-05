@@ -1,5 +1,6 @@
 #include "vec3.hpp"
 #include "transform.hpp"
+#include "buffer.hpp"
 
 #include <vector>
 #include <iostream>
@@ -9,7 +10,6 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
-#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <assimp/Importer.hpp>
@@ -181,24 +181,24 @@ int main()
     glGenVertexArrays(1, &vertex_array);
     glBindVertexArray(vertex_array);
 
-    uint32_t vertex_buffer;
-    glGenBuffers(1, &vertex_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex) * x_vertices.size(), x_vertices.data(), GL_STATIC_DRAW);
+    Buffer vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
+    vertex_buffer.create();
+    vertex_buffer.bind();
+    vertex_buffer.data(BufferData::make_data_of_type<vertex>(x_vertices));
 
-    uint32_t indices_buffer;
-    glGenBuffers(1, &indices_buffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_buffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * x_indices.size(), x_indices.data(), GL_STATIC_DRAW);
+    Buffer indices_buffer { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
+    indices_buffer.create();
+    indices_buffer.bind();
+    indices_buffer.data(BufferData::make_data_of_type<uint32_t>(x_indices));
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*) offsetof(vertex, position));
     glEnableVertexAttribArray(0);
 
     // ==================================================================================
 
-    uint32_t matrices_buffer;
-    glGenBuffers(1, &matrices_buffer);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 0, matrices_buffer);
+    Buffer matrices_buffer { GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
+    matrices_buffer.create();
+    matrices_buffer.bind_at_location(0);
 
     // ==================================================================================
 
@@ -246,7 +246,7 @@ int main()
         matrices[1] = view;
         matrices[2] = proj;
 
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * matrices.size(), matrices.data(), GL_STATIC_DRAW);
+        matrices_buffer.data(BufferData::make_data_of_type<glm::mat4>(matrices));
 
         glUseProgram(program);
         glUniform3fv(0, 1, (const float*) &triangle_color);
