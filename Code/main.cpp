@@ -3,6 +3,7 @@
 #include "vertex_array.hpp"
 #include "program.hpp"
 #include "platform.hpp"
+#include "window.hpp"
 
 #include <vector>
 
@@ -56,26 +57,25 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
 
 int main()
 {
-    Platform platform { };
+    Platform platform;
+    Window   window;
 
     if (!platform.init())
     {
         return -1;
     }
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Playground", nullptr, nullptr);
-    if (!window)
+    if (!window.create("Playground", 800, 600))
     {
         platform.release();
         return -1;
     }
 
-    glfwSetKeyCallback(window, key_callback);
-    glfwMakeContextCurrent(window);
+    glfwSetKeyCallback(window.handle(), key_callback);
 
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress))
     {
-        glfwDestroyWindow(window);
+        window.destroy();
         platform.release();
 
         return -1;
@@ -84,7 +84,7 @@ int main()
     platform.vsync();
 
     ImGui::CreateContext();
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplGlfw_InitForOpenGL(window.handle(), true);
     ImGui_ImplOpenGL3_Init("#version 130");
 
     // ==================================================================================
@@ -184,10 +184,10 @@ int main()
 
     Transform x_transform;
 
-    while (!glfwWindowShouldClose(window))
+    while (!window.closing())
     {
         int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
+        glfwGetFramebufferSize(window.handle(), &width, &height);
 
         float ratio = (float) width / (float) height;
 
@@ -230,11 +230,11 @@ int main()
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        glfwSwapBuffers(window);
+        window.update();
         platform.update();
     }
 
-    glfwDestroyWindow(window);
+    window.destroy();
     platform.release();
 
     return 0;
