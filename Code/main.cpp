@@ -2,16 +2,14 @@
 #include "buffer.hpp"
 #include "vertex_array.hpp"
 #include "program.hpp"
+#include "platform.hpp"
 
 #include <vector>
-#include <iostream>
 
 #include <imgui.h>
 
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
-
-#include <GLFW/glfw3.h>
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -58,20 +56,17 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
 
 int main()
 {
-    if (!glfwInit())
+    Platform platform { };
+
+    if (!platform.init())
     {
         return -1;
     }
 
-    glfwWindowHint(GLFW_SAMPLES, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
     GLFWwindow* window = glfwCreateWindow(800, 600, "Playground", nullptr, nullptr);
     if (!window)
     {
-        glfwTerminate();
+        platform.release();
         return -1;
     }
 
@@ -81,12 +76,12 @@ int main()
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress))
     {
         glfwDestroyWindow(window);
-        glfwTerminate();
+        platform.release();
 
         return -1;
     }
 
-    glfwSwapInterval(1);
+    platform.vsync();
 
     ImGui::CreateContext();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -236,11 +231,11 @@ int main()
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
-        glfwPollEvents();
+        platform.update();
     }
 
     glfwDestroyWindow(window);
-    glfwTerminate();
+    platform.release();
 
     return 0;
 }
