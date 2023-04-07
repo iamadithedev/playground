@@ -1,6 +1,7 @@
-#include "vec3.hpp"
 #include "transform.hpp"
 #include "buffer.hpp"
+#include "vertex_array.hpp"
+#include "program.hpp"
 
 #include <vector>
 #include <iostream>
@@ -55,36 +56,6 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
     }
 }
 
-void shader_status(uint32_t handle)
-{
-    int  success;
-    char info[512];
-
-    glGetShaderiv(handle, GL_COMPILE_STATUS, &success);
-
-    if (!success)
-    {
-        glGetShaderInfoLog(handle, 512, nullptr, info);
-
-        std::cerr << "shader compilation failed\n" << info << std::endl;
-    }
-}
-
-void program_status(uint32_t handle)
-{
-    int  success;
-    char info[512];
-
-    glGetProgramiv(handle, GL_LINK_STATUS, &success);
-
-    if (!success)
-    {
-        glGetProgramInfoLog(handle, 512, nullptr, info);
-
-        std::cerr << "program linking failed\n" << info << std::endl;
-    }
-}
-
 int main()
 {
     if (!glfwInit())
@@ -123,21 +94,24 @@ int main()
 
     // ==================================================================================
 
-    uint32_t vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex_shader, 1, &vertex_shader_text, NULL);
-    glCompileShader(vertex_shader);
-    shader_status(vertex_shader);
+    Shader vertex_shader { "", GL_VERTEX_SHADER };
+    vertex_shader.create();
+    vertex_shader.source(vertex_shader_text);
+    vertex_shader.compile();
 
-    uint32_t fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, &fragment_shader_text, NULL);
-    glCompileShader(fragment_shader);
-    shader_status(fragment_shader);
+    Shader fragment_shader { "", GL_FRAGMENT_SHADER };
+    fragment_shader.create();
+    fragment_shader.source(fragment_shader_text);
+    fragment_shader.compile();
 
-    uint32_t program = glCreateProgram();
-    glAttachShader(program, vertex_shader);
-    glAttachShader(program, fragment_shader);
-    glLinkProgram(program);
-    program_status(program);
+    Program program;
+    program.create();
+    program.attach(&vertex_shader);
+    program.attach(&fragment_shader);
+    program.link();
+
+    program.detach(&vertex_shader);
+    program.detach(&fragment_shader);
 
     // ==================================================================================
 
@@ -177,9 +151,14 @@ int main()
 
     // ==================================================================================
 
-    uint32_t vertex_array;
-    glGenVertexArrays(1, &vertex_array);
-    glBindVertexArray(vertex_array);
+    std::vector<vertex_attribute> vertex_attributes =
+    {
+        { 0, 3, (int32_t)offsetof(vertex, position) }
+    };
+
+    VertexArray vertex_array;
+    vertex_array.create();
+    vertex_array.bind();
 
     Buffer vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
     vertex_buffer.create();
@@ -191,8 +170,7 @@ int main()
     indices_buffer.bind();
     indices_buffer.data(BufferData::make_data_of_type<uint32_t>(x_indices));
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*) offsetof(vertex, position));
-    glEnableVertexAttribArray(0);
+    vertex_array.init_attributes_of_type<vertex>(vertex_attributes);
 
     // ==================================================================================
 
@@ -248,10 +226,10 @@ int main()
 
         matrices_buffer.data(BufferData::make_data_of_type<glm::mat4>(matrices));
 
-        glUseProgram(program);
+        program.bind();
         glUniform3fv(0, 1, (const float*) &triangle_color);
 
-        glBindVertexArray(vertex_array);
+        vertex_array.bind();
         //glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawElements(GL_TRIANGLES, (int32_t) x_indices.size(), GL_UNSIGNED_INT, 0);
 
