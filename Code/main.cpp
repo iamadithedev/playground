@@ -5,6 +5,7 @@
 #include "platform.hpp"
 #include "window.hpp"
 #include "time.hpp"
+#include "render_pass.hpp"
 
 #include <vector>
 
@@ -176,7 +177,12 @@ int main()
 
     // ==================================================================================
 
-    glEnable(GL_MULTISAMPLE);
+    RenderPass render_pass { GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT };
+
+    render_pass.enable(GL_DEPTH_TEST);
+    render_pass.enable(GL_MULTISAMPLE);
+
+    // ==================================================================================
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
@@ -193,23 +199,22 @@ int main()
         glfwGetFramebufferSize(window.handle(), &width, &height);
 
         float ratio = (float) width / (float) height;
-
-        glViewport(0, 0, width, height);
+        render_pass.viewport(0, 0, width, height);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame(time.total_time());
 
         ImGui::NewFrame();
 
-        ImGui::Begin("RenderPass");
+        ImGui::Begin(std::format("RenderPass").c_str()); // TODO add here delta time
         ImGui::ColorEdit3("Clear color", (float*) &clear_color, ImGuiColorEditFlags_NoOptions);
         ImGui::ColorEdit3("Triangle color", (float*) &triangle_color, ImGuiColorEditFlags_NoOptions);
         ImGui::End();
 
         ImGui::Render();
 
-        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-        glClear(GL_COLOR_BUFFER_BIT);
+        render_pass.clear_color(clear_color.x, clear_color.y, clear_color.z);
+        render_pass.clear_buffers();
 
         x_transform.translate({ 0.0f, 0.0f, 0.0f })
                    .rotate({ 0.0f, 0.0f, 1.0f }, time.total_time())
