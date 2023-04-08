@@ -4,6 +4,7 @@
 #include "program.hpp"
 #include "platform.hpp"
 #include "window.hpp"
+#include "time.hpp"
 
 #include <vector>
 
@@ -184,6 +185,8 @@ int main()
 
     Transform x_transform;
 
+    Time time;
+
     while (!window.closing())
     {
         int width, height;
@@ -194,7 +197,7 @@ int main()
         glViewport(0, 0, width, height);
 
         ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
+        ImGui_ImplGlfw_NewFrame(time.total_time());
 
         ImGui::NewFrame();
 
@@ -209,7 +212,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         x_transform.translate({ 0.0f, 0.0f, 0.0f })
-                   .rotate({ 0.0f, 0.0f, 1.0f }, (float) glfwGetTime())
+                   .rotate({ 0.0f, 0.0f, 1.0f }, time.total_time())
                    .scale({ 0.5f, 0.5f, 0.5f });
 
         glm::mat4 view = glm::translate(glm::mat4(1.0f), { 0.0f, 0.0f, -5.0f });
