@@ -59,8 +59,8 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
 
 int main()
 {
-    Platform platform;
-    Window   window;
+    const Platform platform;
+          Window   window;
 
     if (!platform.init())
     {
@@ -177,7 +177,7 @@ int main()
 
     // ==================================================================================
 
-    RenderPass render_pass { GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT };
+    const RenderPass render_pass { GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT };
 
     render_pass.enable(GL_DEPTH_TEST);
     render_pass.enable(GL_MULTISAMPLE);
@@ -191,14 +191,14 @@ int main()
 
     Transform x_transform;
 
-    Time time;
+    const Time time;
 
     while (!window.closing())
     {
         int width, height;
         glfwGetFramebufferSize(window.handle(), &width, &height);
 
-        float ratio = (float) width / (float) height;
+        const float ratio = (float) width / (float) height;
         render_pass.viewport(0, 0, width, height);
 
         ImGui_ImplOpenGL3_NewFrame();
