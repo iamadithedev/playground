@@ -2,10 +2,12 @@
 #include "buffer.hpp"
 #include "vertex_array.hpp"
 #include "program.hpp"
-#include "platform.hpp"
-#include "window.hpp"
 #include "time.hpp"
 #include "render_pass.hpp"
+
+#include "GLFW/platform_factory.hpp"
+#include "GLFW/platform.hpp"
+#include "GLFW/window.hpp"
 
 #include <vector>
 
@@ -15,7 +17,6 @@
 #include <backends/imgui_impl_opengl3.h>
 
 #include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
 const char* vertex_shader_text =
@@ -59,25 +60,27 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
 
 int main()
 {
-    const Platform platform;
-          Window   window;
+    glfw::PlatformFactory platform_factory;
+
+    const glfw::Platform platform;
+    auto window = platform_factory.create_window();
 
     if (!platform.init())
     {
         return -1;
     }
 
-    if (!window.create("Playground", 800, 600))
+    if (!window->create("Playground", 800, 600))
     {
         platform.release();
         return -1;
     }
 
-    glfwSetKeyCallback(window.handle(), key_callback);
+    glfwSetKeyCallback(((glfw::Window*)window.get())->handle(), key_callback);
 
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress))
     {
-        window.destroy();
+        window->destroy();
         platform.release();
 
         return -1;
@@ -86,7 +89,7 @@ int main()
     platform.vsync();
 
     ImGui::CreateContext();
-    ImGui_ImplGlfw_InitForOpenGL(window.handle(), true);
+    ImGui_ImplGlfw_InitForOpenGL(((glfw::Window*)window.get())->handle(), true);
     ImGui_ImplOpenGL3_Init("#version 130");
 
     // ==================================================================================
@@ -193,10 +196,10 @@ int main()
 
     const Time time;
 
-    while (!window.closing())
+    while (!window->closing())
     {
         int width, height;
-        glfwGetFramebufferSize(window.handle(), &width, &height);
+        glfwGetFramebufferSize(((glfw::Window*)window.get())->handle(), &width, &height);
 
         const float ratio = (float) width / (float) height;
         render_pass.viewport(0, 0, width, height);
@@ -238,11 +241,11 @@ int main()
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        window.update();
+        window->update();
         platform.update();
     }
 
-    window.destroy();
+    window->destroy();
     platform.release();
 
     return 0;
