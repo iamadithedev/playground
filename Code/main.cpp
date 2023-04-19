@@ -4,6 +4,7 @@
 #include "program.hpp"
 #include "time.hpp"
 #include "render_pass.hpp"
+#include "camera.hpp"
 
 #include <vector>
 
@@ -55,13 +56,13 @@ struct vertex
     windows::PlatformFactory platform_factory;
 #endif
 
-void key_callback(GLFWwindow* window, int key, int, int action, int)
+void key_callback(GLFWwindow* handle, int key, int, int action, int)
 {
     if (action == GLFW_PRESS)
     {
         if (key == GLFW_KEY_ESCAPE)
         {
-            glfwSetWindowShouldClose(window, GLFW_TRUE);
+            ((glfw::Window*)glfwGetWindowUserPointer(handle))->close();
         }
     }
 }
@@ -69,14 +70,14 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
 int main()
 {
     auto platform = platform_factory.create_platform();
-    auto window   = platform_factory.create_window();
+    auto window   = platform_factory.create_window(800, 600);
 
     if (!platform->init())
     {
         return -1;
     }
 
-    if (!window->create("Playground", 800, 600))
+    if (!window->create("Playground"))
     {
         platform->release();
         return -1;
@@ -97,6 +98,8 @@ int main()
     ImGui::CreateContext();
     ImGui_ImplGlfw_InitForOpenGL(((glfw::Window*)window.get())->handle(), true);
     ImGui_ImplOpenGL3_Init("#version 130");
+
+    ImGuiIO& io = ImGui::GetIO();
 
     // ==================================================================================
 
@@ -198,26 +201,37 @@ int main()
     std::vector<glm::mat4> matrices { 3 };
     glm::vec3 triangle_color { 1.0f, 0.0f, 0.0f };
 
+    Camera camera;
+
     Transform x_transform;
+    Transform camera_transform;
+
+    camera_transform.translate({ 0.0f, 0.0f, -5.0f });
 
     const Time time;
+    float fov = 60.0f;
 
-    while (!window->closing())
+    while (!window->closed())
     {
-        int width, height;
-        glfwGetFramebufferSize(((glfw::Window*)window.get())->handle(), &width, &height);
+        int32_t width  = window->width();
+        int32_t height = window->height();
 
         const float ratio = (float) width / (float) height;
+
         render_pass.viewport(0, 0, width, height);
+        camera.perspective(fov, ratio);
 
         ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame(time.total_time());
+        ImGui_ImplGlfw_NewFrame(width, height, time.total_time());
 
         ImGui::NewFrame();
 
-        ImGui::Begin(std::format("RenderPass").c_str()); // TODO add here delta time
+        ImGui::Begin("RenderPass");
         ImGui::ColorEdit3("Clear color", (float*) &clear_color, ImGuiColorEditFlags_NoOptions);
         ImGui::ColorEdit3("Triangle color", (float*) &triangle_color, ImGuiColorEditFlags_NoOptions);
+        ImGui::SliderFloat("Fov", &fov, 45, 120);
+
+        ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
         ImGui::End();
 
         ImGui::Render();
@@ -229,12 +243,9 @@ int main()
                    .rotate({ 0.0f, 0.0f, 1.0f }, time.total_time())
                    .scale({ 0.5f, 0.5f, 0.5f });
 
-        glm::mat4 view = glm::translate(glm::mat4(1.0f), { 0.0f, 0.0f, -5.0f });
-        glm::mat4 proj = glm::perspective(glm::radians(60.0f), ratio, 0.1f, 100.0f);
-
         matrices[0] = x_transform.matrix();
-        matrices[1] = view;
-        matrices[2] = proj;
+        matrices[1] = camera_transform.matrix();
+        matrices[2] = camera.projection();
 
         matrices_buffer.data(BufferData::make_data_of_type<glm::mat4>(matrices));
 
