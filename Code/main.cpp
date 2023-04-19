@@ -5,10 +5,6 @@
 #include "time.hpp"
 #include "render_pass.hpp"
 
-#include "GLFW/platform_factory.hpp"
-#include "GLFW/platform.hpp"
-#include "GLFW/window.hpp"
-
 #include <vector>
 
 #include <imgui.h>
@@ -47,6 +43,18 @@ struct vertex
     vec3 position;
 };
 
+#define USE_GLFW
+#ifdef  USE_GLFW
+    #include "GLFW/platform_factory.hpp"
+    #include "GLFW/window.hpp"
+
+    glfw::PlatformFactory platform_factory;
+#else
+    #include "Windows/platform_factory.hpp"
+
+    windows::PlatformFactory platform_factory;
+#endif
+
 void key_callback(GLFWwindow* window, int key, int, int action, int)
 {
     if (action == GLFW_PRESS)
@@ -60,19 +68,17 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
 
 int main()
 {
-    glfw::PlatformFactory platform_factory;
+    auto platform = platform_factory.create_platform();
+    auto window   = platform_factory.create_window();
 
-    const glfw::Platform platform;
-    auto window = platform_factory.create_window();
-
-    if (!platform.init())
+    if (!platform->init())
     {
         return -1;
     }
 
     if (!window->create("Playground", 800, 600))
     {
-        platform.release();
+        platform->release();
         return -1;
     }
 
@@ -81,12 +87,12 @@ int main()
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress))
     {
         window->destroy();
-        platform.release();
+        platform->release();
 
         return -1;
     }
 
-    platform.vsync();
+    platform->vsync();
 
     ImGui::CreateContext();
     ImGui_ImplGlfw_InitForOpenGL(((glfw::Window*)window.get())->handle(), true);
@@ -242,11 +248,11 @@ int main()
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         window->update();
-        platform.update();
+        platform->update();
     }
 
     window->destroy();
-    platform.release();
+    platform->release();
 
     return 0;
 }
