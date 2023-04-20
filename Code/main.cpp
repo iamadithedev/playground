@@ -153,20 +153,18 @@ int main()
 
     Buffer vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
     vertex_buffer.create();
-    vertex_buffer.bind();
-    vertex_buffer.data(BufferData::make_data_of_type(x_vertices));
+    vertex_buffer.data(BufferData::make_data(x_vertices));
 
     Buffer indices_buffer { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
     indices_buffer.create();
-    indices_buffer.bind();
-    indices_buffer.data(BufferData::make_data_of_type(x_indices));
+    indices_buffer.data(BufferData::make_data(x_indices));
 
     vertex_array.init_attributes_of_type<vertex>(vertex_attributes);
 
     // ==================================================================================
 
-    auto* x_material = new Material();
-    x_material->diffuse = { 1.0f, 0.0f, 0.0f };
+    Material x_material;
+    x_material.diffuse = { 1.0f, 1.0f, 0.0f };
 
     // ==================================================================================
 
@@ -218,7 +216,7 @@ int main()
 
         ImGui::Begin("RenderPass");
         ImGui::ColorEdit3("Clear color", (float*) &clear_color, ImGuiColorEditFlags_NoOptions);
-        ImGui::ColorEdit3("Diffuse color", (float*) &x_material->diffuse, ImGuiColorEditFlags_NoOptions);
+        ImGui::ColorEdit3("Diffuse color", (float*) &x_material.diffuse, ImGuiColorEditFlags_NoOptions);
         ImGui::SliderFloat("Fov", &fov, 45, 120);
 
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
@@ -237,8 +235,8 @@ int main()
         matrices[1] = camera_transform.matrix();
         matrices[2] = camera.projection();
 
-        matrices_buffer.data(BufferData::make_data_of_type(matrices));
-        material_buffer.data(BufferData::make_data_of_type(x_material));
+        matrices_buffer.data(BufferData::make_data(matrices));
+        material_buffer.data(BufferData::make_data(&x_material));
 
         program.bind();
 

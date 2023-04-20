@@ -2,7 +2,7 @@
 
 layout (location = 0) in vec3 in_position;
 
-layout (binding = 0, std140) uniform matrices
+layout (binding = 0, std140) uniform u_matrices
 {
    mat4 model;
    mat4 view;
