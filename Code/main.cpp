@@ -6,6 +6,7 @@
 #include "render_pass.hpp"
 #include "camera.hpp"
 #include "file.hpp"
+#include "material.hpp"
 
 #include <vector>
 
@@ -153,20 +154,29 @@ int main()
     Buffer vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
     vertex_buffer.create();
     vertex_buffer.bind();
-    vertex_buffer.data(BufferData::make_data_of_type<vertex>(x_vertices));
+    vertex_buffer.data(BufferData::make_data_of_type(x_vertices));
 
     Buffer indices_buffer { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
     indices_buffer.create();
     indices_buffer.bind();
-    indices_buffer.data(BufferData::make_data_of_type<uint32_t>(x_indices));
+    indices_buffer.data(BufferData::make_data_of_type(x_indices));
 
     vertex_array.init_attributes_of_type<vertex>(vertex_attributes);
+
+    // ==================================================================================
+
+    auto* x_material = new Material();
+    x_material->diffuse = { 1.0f, 0.0f, 0.0f };
 
     // ==================================================================================
 
     Buffer matrices_buffer { GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
     matrices_buffer.create();
     matrices_buffer.bind_at_location(0);
+
+    Buffer material_buffer { GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
+    material_buffer.create();
+    material_buffer.bind_at_location(1);
 
     // ==================================================================================
 
@@ -180,7 +190,6 @@ int main()
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     std::vector<glm::mat4> matrices { 3 };
-    glm::vec3 triangle_color { 1.0f, 0.0f, 0.0f };
 
     Camera camera;
 
@@ -209,7 +218,7 @@ int main()
 
         ImGui::Begin("RenderPass");
         ImGui::ColorEdit3("Clear color", (float*) &clear_color, ImGuiColorEditFlags_NoOptions);
-        ImGui::ColorEdit3("Triangle color", (float*) &triangle_color, ImGuiColorEditFlags_NoOptions);
+        ImGui::ColorEdit3("Diffuse color", (float*) &x_material->diffuse, ImGuiColorEditFlags_NoOptions);
         ImGui::SliderFloat("Fov", &fov, 45, 120);
 
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
@@ -228,10 +237,10 @@ int main()
         matrices[1] = camera_transform.matrix();
         matrices[2] = camera.projection();
 
-        matrices_buffer.data(BufferData::make_data_of_type<glm::mat4>(matrices));
+        matrices_buffer.data(BufferData::make_data_of_type(matrices));
+        material_buffer.data(BufferData::make_data_of_type(x_material));
 
         program.bind();
-        glUniform3fv(0, 1, (const float*) &triangle_color);
 
         vertex_array.bind();
         //glDrawArrays(GL_TRIANGLES, 0, 3);

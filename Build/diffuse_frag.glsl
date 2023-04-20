@@ -1,10 +1,13 @@
 #version 430
 
-layout (location = 0) uniform vec3 u_color;
+layout (binding = 1, std140) uniform material
+{
+   vec3 diffuse;
+};
 
 out vec4 out_color;
 
 void main()
 {
-   out_color = vec4(u_color, 1.0);
+   out_color = vec4(diffuse, 1.0);
 }
