@@ -5,6 +5,7 @@
 #include "time.hpp"
 #include "render_pass.hpp"
 #include "camera.hpp"
+#include "file.hpp"
 
 #include <vector>
 
@@ -15,29 +16,6 @@
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
-
-const char* vertex_shader_text =
-"#version 420\n"
-"in vec3 in_position;\n"
-"layout (binding = 0, std140) uniform matrices\n"
-"{\n"
-"   mat4 model;\n"
-"   mat4 view;\n"
-"   mat4 proj;\n"
-"};\n"
-"void main()\n"
-"{\n"
-"   gl_Position = proj * view * model * vec4(in_position, 1.0);\n"
-"}\n";
-
-const char* fragment_shader_text =
-"#version 430\n"
-"layout (location = 0) uniform vec3 u_color;\n"
-"out vec4 out_color;\n"
-"void main()\n"
-"{\n"
-"   out_color = vec4(u_color, 1.0);\n"
-"}\n";
 
 struct vertex
 {
@@ -103,14 +81,17 @@ int main()
 
     // ==================================================================================
 
-    Shader vertex_shader { "", GL_VERTEX_SHADER };
+    auto diffuse_vertex_source = File::read("../diffuse_vert.glsl");
+    auto diffuse_fragment_source = File::read("../diffuse_frag.glsl");
+
+    Shader vertex_shader { "diffuse_vert.glsl", GL_VERTEX_SHADER };
     vertex_shader.create();
-    vertex_shader.source(vertex_shader_text);
+    vertex_shader.source(diffuse_vertex_source.data());
     vertex_shader.compile();
 
-    Shader fragment_shader { "", GL_FRAGMENT_SHADER };
+    Shader fragment_shader { "diffuse_frag.glsl", GL_FRAGMENT_SHADER };
     fragment_shader.create();
-    fragment_shader.source(fragment_shader_text);
+    fragment_shader.source(diffuse_fragment_source.data());
     fragment_shader.compile();
 
     Program program;
