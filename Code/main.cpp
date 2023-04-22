@@ -7,12 +7,15 @@
 #include "camera.hpp"
 #include "file.hpp"
 #include "material.hpp"
+#include "texture.hpp"
 
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
+
+#include <stb_image.h>
 
 struct vertex
 {
@@ -138,6 +141,22 @@ int main()
 
     // ==================================================================================
 
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // TODO test without this on a normal square from our own shader
+
+    int32_t w, h, c;
+
+    auto   data = stbi_load("../texture.jpg", &w, &h, &c, 0);
+    assert(data != nullptr);
+
+    Texture test_texture { GL_TEXTURE_2D };
+    test_texture.create();
+    test_texture.source({ data, w, h, GL_RGB });
+
+    test_texture.parameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    test_texture.parameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // ==================================================================================
+
     std::vector<vertex_attribute> vertex_attributes =
     {
         { 0, 3, (int32_t)offsetof(vertex, position) }
@@ -216,6 +235,10 @@ int main()
         ImGui::SliderFloat("Fov", &fov, 45, 120);
 
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+        ImGui::End();
+
+        ImGui::Begin("Texture");
+        ImGui::Image((void*)(intptr_t)test_texture.handle(), { 256, 256});
         ImGui::End();
 
         ImGui::Render();
