@@ -9,6 +9,7 @@
 #include "material.hpp"
 #include "texture.hpp"
 #include "vec2.hpp"
+#include "light.hpp"
 
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -21,7 +22,7 @@
 struct diffuse_vertex
 {
     vec3 position;
-    vec2 uv;
+    vec3 normal;
 };
 
 struct texture_vertex
@@ -140,7 +141,7 @@ int main()
     Assimp::Importer importer;
 
     std::vector<diffuse_vertex> x_vertices;
-    std::vector<uint32_t> x_indices;
+    std::vector<uint32_t>       x_indices;
 
     const aiScene* scene = importer.ReadFile("../x.obj", 0);
 
@@ -155,8 +156,10 @@ int main()
             for (uint32_t j = 0; j < mesh->mNumVertices; j++)
             {
                 const aiVector3D& position = mesh->mVertices[j];
+                const aiVector3D& normal   = mesh->mNormals[j];
 
-                x_vertices.push_back({ position.x, position.y, position.z });
+                x_vertices.push_back({{ position.x, position.y, position.z },
+                                      { normal.x, normal.y, normal.z }});
             }
 
             for (uint32_t j = 0; j < mesh->mNumFaces; j++)
@@ -186,11 +189,14 @@ int main()
     test_texture.parameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     test_texture.parameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+    std::free(data);
+
     // ==================================================================================
 
     std::vector<vertex_attribute> diffuse_vertex_attributes =
     {
-        { 0, 3, (int32_t)offsetof(diffuse_vertex, position) }
+        { 0, 3, (int32_t)offsetof(diffuse_vertex, position) },
+        { 1, 3, (int32_t) offsetof(diffuse_vertex, normal) }
     };
 
     VertexArray x_vertex_array;
@@ -250,6 +256,11 @@ int main()
 
     // ==================================================================================
 
+    rgb   light_color { 1.0f, 1.0f, 1.0f };
+    Light directional_light { { 0.0f, 0.0f, 5.0f }, light_color };
+
+    // ==================================================================================
+
     Buffer matrices_buffer { GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
     matrices_buffer.create();
     matrices_buffer.bind_at_location(0);
@@ -257,6 +268,10 @@ int main()
     Buffer material_buffer { GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
     material_buffer.create();
     material_buffer.bind_at_location(1);
+
+    Buffer light_buffer { GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
+    light_buffer.create();
+    light_buffer.bind_at_location(2);
 
     // ==================================================================================
 
@@ -324,7 +339,16 @@ int main()
         ImGui::Image((void*)(intptr_t)test_texture.handle(), { 256, 256}); // TODO fix flipped image
         ImGui::End();
 
+        ImGui::Begin("Light");
+        ImGui::ColorEdit3("Color", (float*)&light_color, ImGuiColorEditFlags_NoOptions);
+        ImGui::End();
+
         ImGui::Render();
+
+        // ==================================================================================
+
+        directional_light.color(light_color);
+        light_buffer.data(BufferData::make_data(&directional_light));
 
         // ==================================================================================
 
@@ -334,7 +358,7 @@ int main()
         // ==================================================================================
 
         x_transform.translate({ 0.0f, 0.0f, 0.0f })
-                   .rotate({ 0.0f, 0.0f, 1.0f }, time.total_time())
+                   .rotate({ 0.0f, 1.0f, 0.0f }, time.total_time())
                    .scale({ 0.5f, 0.5f, 0.5f });
 
         matrices[0] = x_transform.matrix();
