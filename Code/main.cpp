@@ -8,6 +8,7 @@
 #include "file.hpp"
 #include "material.hpp"
 #include "texture.hpp"
+#include "vec2.hpp"
 
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -17,9 +18,16 @@
 
 #include <stb_image.h>
 
-struct vertex
+struct diffuse_vertex
 {
     vec3 position;
+    vec2 uv;
+};
+
+struct texture_vertex
+{
+    vec3 position;
+    vec2 uv;
 };
 
 #define USE_GLFW
@@ -84,30 +92,54 @@ int main()
     auto diffuse_vertex_source = File::read("../diffuse_vert.glsl");
     auto diffuse_fragment_source = File::read("../diffuse_frag.glsl");
 
-    Shader vertex_shader { "diffuse_vert.glsl", GL_VERTEX_SHADER };
-    vertex_shader.create();
-    vertex_shader.source(diffuse_vertex_source.data());
-    vertex_shader.compile();
+    Shader diffuse_vertex_shader {"diffuse_vert.glsl", GL_VERTEX_SHADER };
+    diffuse_vertex_shader.create();
+    diffuse_vertex_shader.source(diffuse_vertex_source.data());
+    diffuse_vertex_shader.compile();
 
-    Shader fragment_shader { "diffuse_frag.glsl", GL_FRAGMENT_SHADER };
-    fragment_shader.create();
-    fragment_shader.source(diffuse_fragment_source.data());
-    fragment_shader.compile();
+    Shader diffuse_fragment_shader {"diffuse_frag.glsl", GL_FRAGMENT_SHADER };
+    diffuse_fragment_shader.create();
+    diffuse_fragment_shader.source(diffuse_fragment_source.data());
+    diffuse_fragment_shader.compile();
 
-    Program program;
-    program.create();
-    program.attach(&vertex_shader);
-    program.attach(&fragment_shader);
-    program.link();
+    Program diffuse_program;
+    diffuse_program.create();
+    diffuse_program.attach(&diffuse_vertex_shader);
+    diffuse_program.attach(&diffuse_fragment_shader);
+    diffuse_program.link();
 
-    program.detach(&vertex_shader);
-    program.detach(&fragment_shader);
+    diffuse_program.detach(&diffuse_vertex_shader);
+    diffuse_program.detach(&diffuse_fragment_shader);
+
+    // ==================================================================================
+
+    auto texture_vertex_source = File::read("../texture_vert.glsl");
+    auto texture_fragment_source = File::read("../texture_frag.glsl");
+
+    Shader texture_vertex_shader { "texture_vert.gsl", GL_VERTEX_SHADER };
+    texture_vertex_shader.create();
+    texture_vertex_shader.source(texture_vertex_source.data());
+    texture_vertex_shader.compile();
+
+    Shader texture_fragment_shader { "texture_frag.glsl", GL_FRAGMENT_SHADER };
+    texture_fragment_shader.create();
+    texture_fragment_shader.source(texture_fragment_source.data());
+    texture_fragment_shader.compile();
+
+    Program texture_program;
+    texture_program.create();
+    texture_program.attach(&texture_vertex_shader);
+    texture_program.attach(&texture_fragment_shader);
+    texture_program.link();
+
+    texture_program.detach(&texture_vertex_shader);
+    texture_program.detach(&texture_fragment_shader);
 
     // ==================================================================================
 
     Assimp::Importer importer;
 
-    std::vector<vertex> x_vertices;
+    std::vector<diffuse_vertex> x_vertices;
     std::vector<uint32_t> x_indices;
 
     const aiScene* scene = importer.ReadFile("../x.obj", 0);
@@ -141,11 +173,10 @@ int main()
 
     // ==================================================================================
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // TODO test without this on a normal square from our own shader
-
     int32_t w, h, c;
 
-    auto   data = stbi_load("../texture.jpg", &w, &h, &c, 0);
+    stbi_set_flip_vertically_on_load(true);
+    auto   data = stbi_load("../texture.jpeg", &w, &h, &c, 0);
     assert(data != nullptr);
 
     Texture test_texture { GL_TEXTURE_2D };
@@ -157,24 +188,60 @@ int main()
 
     // ==================================================================================
 
-    std::vector<vertex_attribute> vertex_attributes =
+    std::vector<vertex_attribute> diffuse_vertex_attributes =
     {
-        { 0, 3, (int32_t)offsetof(vertex, position) }
+        { 0, 3, (int32_t)offsetof(diffuse_vertex, position) }
     };
 
-    VertexArray vertex_array;
-    vertex_array.create();
-    vertex_array.bind();
+    VertexArray x_vertex_array;
+    x_vertex_array.create();
+    x_vertex_array.bind();
 
-    Buffer vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
-    vertex_buffer.create();
-    vertex_buffer.data(BufferData::make_data(x_vertices));
+    Buffer x_vertex_buffer {GL_ARRAY_BUFFER, GL_STATIC_DRAW };
+    x_vertex_buffer.create();
+    x_vertex_buffer.data(BufferData::make_data(x_vertices));
 
-    Buffer indices_buffer { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
-    indices_buffer.create();
-    indices_buffer.data(BufferData::make_data(x_indices));
+    Buffer x_indices_buffer {GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
+    x_indices_buffer.create();
+    x_indices_buffer.data(BufferData::make_data(x_indices));
 
-    vertex_array.init_attributes_of_type<vertex>(vertex_attributes);
+    x_vertex_array.init_attributes_of_type<diffuse_vertex>(diffuse_vertex_attributes);
+
+    // ==================================================================================
+
+    std::vector<texture_vertex> square_vertices =
+    {
+        {{  128.0f,  128.0f, 0.0f }, { 1.0f, 1.0f } },
+        {{  128.0f, -128.0f, 0.0f }, { 1.0f, 0.0f } },
+        {{ -128.0f, -128.0f, 0.0f }, { 0.0f, 0.0f } },
+        {{ -128.0f,  128.0f, 0.0f }, { 0.0f, 1.0f } },
+    };
+
+    std::vector<uint32_t> square_indices =
+    {
+        0, 1, 3,
+        1, 2, 3
+    };
+
+    std::vector<vertex_attribute> texture_vertex_attributes =
+    {
+        { 0, 3, (int32_t)offsetof(texture_vertex, position) },
+        { 1, 2, (int32_t)offsetof(texture_vertex, uv) }
+    };
+
+    VertexArray square_vertex_array;
+    square_vertex_array.create();
+    square_vertex_array.bind();
+
+    Buffer square_vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
+    square_vertex_buffer.create();
+    square_vertex_buffer.data(BufferData::make_data(square_vertices));
+
+    Buffer square_indices_buffer { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
+    square_indices_buffer.create();
+    square_indices_buffer.data(BufferData::make_data(square_indices));
+
+    square_vertex_array.init_attributes_of_type<texture_vertex>(texture_vertex_attributes);
 
     // ==================================================================================
 
@@ -200,16 +267,28 @@ int main()
 
     // ==================================================================================
 
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.0f);
 
     std::vector<glm::mat4> matrices { 3 };
 
-    Camera camera;
+    // ==================================================================================
+
+    Camera perspective_camera;
+    Camera ortho_camera;
+
+    Transform perspective_camera_transform;
+    Transform ortho_camera_transform;
+
+    perspective_camera_transform.translate({0.0f, 0.0f, -5.0f });
+
+    // ==================================================================================
 
     Transform x_transform;
-    Transform camera_transform;
+    Transform square_transform;
 
-    camera_transform.translate({ 0.0f, 0.0f, -5.0f });
+    square_transform.translate({ 128.0f, 128.0f, 0.0f });
+
+    // ==================================================================================
 
     const Time time;
     float fov = 60.0f;
@@ -221,8 +300,12 @@ int main()
 
         const float ratio = (float) width / (float) height;
 
+        perspective_camera.perspective(fov, ratio);
+        ortho_camera.ortho(0.0f, (float)width, 0.0f, (float)height);
+
         render_pass.viewport(0, 0, width, height);
-        camera.perspective(fov, ratio);
+
+        // ==================================================================================
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame(width, height, time.total_time());
@@ -238,30 +321,49 @@ int main()
         ImGui::End();
 
         ImGui::Begin("Texture");
-        ImGui::Image((void*)(intptr_t)test_texture.handle(), { 256, 256});
+        ImGui::Image((void*)(intptr_t)test_texture.handle(), { 256, 256}); // TODO fix flipped image
         ImGui::End();
 
         ImGui::Render();
 
+        // ==================================================================================
+
         render_pass.clear_color(clear_color.x, clear_color.y, clear_color.z);
         render_pass.clear_buffers();
+
+        // ==================================================================================
 
         x_transform.translate({ 0.0f, 0.0f, 0.0f })
                    .rotate({ 0.0f, 0.0f, 1.0f }, time.total_time())
                    .scale({ 0.5f, 0.5f, 0.5f });
 
         matrices[0] = x_transform.matrix();
-        matrices[1] = camera_transform.matrix();
-        matrices[2] = camera.projection();
+        matrices[1] = perspective_camera_transform.matrix();
+        matrices[2] = perspective_camera.projection();
 
         matrices_buffer.data(BufferData::make_data(matrices));
         material_buffer.data(BufferData::make_data(&x_material));
 
-        program.bind();
+        diffuse_program.bind();
 
-        vertex_array.bind();
-        //glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDrawElements(GL_TRIANGLES, (int32_t) x_indices.size(), GL_UNSIGNED_INT, 0);
+        x_vertex_array.bind();
+        glDrawElements(GL_TRIANGLES, (int32_t)x_indices.size(), GL_UNSIGNED_INT, 0);
+
+        // ==================================================================================
+
+        matrices[0] = square_transform.matrix();
+        matrices[1] = ortho_camera_transform.matrix();
+        matrices[2] = ortho_camera.projection();
+
+        matrices_buffer.data(BufferData::make_data(matrices));
+
+        texture_program.bind();
+        test_texture.bind();
+
+        square_vertex_array.bind();
+        glDrawElements(GL_TRIANGLES, (int32_t)square_indices.size(), GL_UNSIGNED_INT, 0);
+
+        // ==================================================================================
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
