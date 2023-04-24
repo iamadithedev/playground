@@ -10,11 +10,11 @@ layout (binding = 0, std140) uniform u_matrices
    mat4 proj;
 };
 
-out vec2 uv;
+layout (location = 0) out vec2 out_uv;
 
 void main()
 {
    gl_Position = proj * view * model * vec4(in_position, 1.0);
 
-   uv = in_uv;
+   out_uv = in_uv;
 }

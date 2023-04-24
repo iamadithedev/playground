@@ -8,28 +8,13 @@
 #include "file.hpp"
 #include "material.hpp"
 #include "texture.hpp"
-#include "vec2.hpp"
+#include "importer.hpp"
 #include "light.hpp"
 
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-
 #include <stb_image.h>
-
-struct diffuse_vertex
-{
-    vec3 position;
-    vec3 normal;
-};
-
-struct texture_vertex
-{
-    vec3 position;
-    vec2 uv;
-};
 
 #define USE_GLFW
 #ifdef  USE_GLFW
@@ -81,6 +66,8 @@ int main()
     }
 
     platform->vsync();
+
+    // ==================================================================================
 
     ImGui::CreateContext();
     ImGui_ImplGlfw_InitForOpenGL(((glfw::Window*)window.get())->handle(), true);
@@ -138,41 +125,7 @@ int main()
 
     // ==================================================================================
 
-    Assimp::Importer importer;
-
-    std::vector<diffuse_vertex> x_vertices;
-    std::vector<uint32_t>       x_indices;
-
-    const aiScene* scene = importer.ReadFile("../x.obj", 0);
-
-    if (scene && scene->mRootNode)
-    {
-        const aiNode* node = scene->mRootNode->mChildren[0];
-
-        for (uint32_t i = 0; i < node->mNumMeshes; i++)
-        {
-            const aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-
-            for (uint32_t j = 0; j < mesh->mNumVertices; j++)
-            {
-                const aiVector3D& position = mesh->mVertices[j];
-                const aiVector3D& normal   = mesh->mNormals[j];
-
-                x_vertices.push_back({{ position.x, position.y, position.z },
-                                      { normal.x, normal.y, normal.z }});
-            }
-
-            for (uint32_t j = 0; j < mesh->mNumFaces; j++)
-            {
-                const aiFace& face = mesh->mFaces[j];
-
-                for (uint32_t f = 0; f < face.mNumIndices; f++)
-                {
-                    x_indices.push_back(face.mIndices[f]);
-                }
-            }
-        }
-    }
+    auto x_geometry = Importer::load("../x.obj");
 
     // ==================================================================================
 
@@ -195,8 +148,8 @@ int main()
 
     std::vector<vertex_attribute> diffuse_vertex_attributes =
     {
-        { 0, 3, (int32_t)offsetof(diffuse_vertex, position) },
-        { 1, 3, (int32_t) offsetof(diffuse_vertex, normal) }
+        { 0, 3, (int32_t)offsetof(vertex::diffuse, position) },
+        { 1, 3, (int32_t) offsetof(vertex::diffuse, normal) }
     };
 
     VertexArray x_vertex_array;
@@ -205,17 +158,19 @@ int main()
 
     Buffer x_vertex_buffer {GL_ARRAY_BUFFER, GL_STATIC_DRAW };
     x_vertex_buffer.create();
-    x_vertex_buffer.data(BufferData::make_data(x_vertices));
+    x_vertex_buffer.data(BufferData::make_data(x_geometry.vertices));
 
     Buffer x_indices_buffer {GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
     x_indices_buffer.create();
-    x_indices_buffer.data(BufferData::make_data(x_indices));
+    x_indices_buffer.data(BufferData::make_data(x_geometry.indices));
 
-    x_vertex_array.init_attributes_of_type<diffuse_vertex>(diffuse_vertex_attributes);
+    x_vertex_array.init_attributes_of_type<vertex::diffuse>(diffuse_vertex_attributes);
 
     // ==================================================================================
 
-    std::vector<texture_vertex> square_vertices =
+    mesh_geometry<vertex::texture> square_geometry;
+
+    square_geometry.vertices =
     {
         {{  128.0f,  128.0f, 0.0f }, { 1.0f, 1.0f } },
         {{  128.0f, -128.0f, 0.0f }, { 1.0f, 0.0f } },
@@ -223,7 +178,7 @@ int main()
         {{ -128.0f,  128.0f, 0.0f }, { 0.0f, 1.0f } },
     };
 
-    std::vector<uint32_t> square_indices =
+    square_geometry.indices =
     {
         0, 1, 3,
         1, 2, 3
@@ -231,8 +186,8 @@ int main()
 
     std::vector<vertex_attribute> texture_vertex_attributes =
     {
-        { 0, 3, (int32_t)offsetof(texture_vertex, position) },
-        { 1, 2, (int32_t)offsetof(texture_vertex, uv) }
+        { 0, 3, (int32_t)offsetof(vertex::texture, position) },
+        { 1, 2, (int32_t)offsetof(vertex::texture, uv) }
     };
 
     VertexArray square_vertex_array;
@@ -241,13 +196,13 @@ int main()
 
     Buffer square_vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
     square_vertex_buffer.create();
-    square_vertex_buffer.data(BufferData::make_data(square_vertices));
+    square_vertex_buffer.data(BufferData::make_data(square_geometry.vertices));
 
     Buffer square_indices_buffer { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
     square_indices_buffer.create();
-    square_indices_buffer.data(BufferData::make_data(square_indices));
+    square_indices_buffer.data(BufferData::make_data(square_geometry.indices));
 
-    square_vertex_array.init_attributes_of_type<texture_vertex>(texture_vertex_attributes);
+    square_vertex_array.init_attributes_of_type<vertex::texture>(texture_vertex_attributes);
 
     // ==================================================================================
 
@@ -371,7 +326,7 @@ int main()
         diffuse_program.bind();
 
         x_vertex_array.bind();
-        glDrawElements(GL_TRIANGLES, (int32_t)x_indices.size(), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, (int32_t)x_geometry.indices.size(), GL_UNSIGNED_INT, 0);
 
         // ==================================================================================
 
@@ -385,7 +340,7 @@ int main()
         test_texture.bind();
 
         square_vertex_array.bind();
-        glDrawElements(GL_TRIANGLES, (int32_t)square_indices.size(), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, (int32_t)square_geometry.indices.size(), GL_UNSIGNED_INT, 0);
 
         // ==================================================================================
 

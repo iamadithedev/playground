@@ -10,15 +10,15 @@ layout (binding = 0, std140) uniform u_matrices
    mat4 proj;
 };
 
-out vec3 position;
-out vec3 normal;
+layout (location = 0) out vec3 out_position;
+layout (location = 1) out vec3 out_normal;
 
 void main()
 {
-    vec4 pos    = model * vec4(in_position, 1.0);
-    gl_Position = proj  * view * pos;
+    vec4 position = model * vec4(in_position, 1.0);
+    gl_Position   = proj  * view * position;
 
-    //normal = mat3(transpose(inverse(model))) * in_normal;
-    normal   = mat3(model) * in_normal;
-    position = pos.xyz;
+    //out_normal = mat3(transpose(inverse(model))) * in_normal;
+    out_normal   = mat3(model) * in_normal;
+    out_position = position.xyz;
 }
