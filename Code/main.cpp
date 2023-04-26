@@ -14,6 +14,8 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
+#include <btBulletCollisionCommon.h>
+
 #include <stb_image.h>
 
 #define USE_GLFW
@@ -37,6 +39,25 @@ void key_callback(GLFWwindow* handle, int key, int, int action, int)
             ((glfw::Window*)glfwGetWindowUserPointer(handle))->close();
         }
     }
+}
+
+struct ray
+{
+    glm::vec3 origin;
+    glm::vec3 direction;
+};
+
+btCollisionWorld::ClosestRayResultCallback cast(btCollisionWorld* world, const ray& ray, float distance)
+{
+    btVector3 origin    { ray.origin.x, ray.origin.y, ray.origin.z };
+    btVector3 direction { ray.direction.x, ray.direction.y, ray.direction.z };
+
+    btVector3 target = origin + direction * distance;
+
+    btCollisionWorld::ClosestRayResultCallback hit { origin, target };
+    world->rayTest(origin, target, hit);
+
+    return hit;
 }
 
 int main()
@@ -149,7 +170,7 @@ int main()
     std::vector<vertex_attribute> diffuse_vertex_attributes =
     {
         { 0, 3, (int32_t)offsetof(vertex::diffuse, position) },
-        { 1, 3, (int32_t) offsetof(vertex::diffuse, normal) }
+        { 1, 3, (int32_t)offsetof(vertex::diffuse, normal) }
     };
 
     VertexArray x_vertex_array;
@@ -158,35 +179,29 @@ int main()
 
     Buffer x_vertex_buffer {GL_ARRAY_BUFFER, GL_STATIC_DRAW };
     x_vertex_buffer.create();
-    x_vertex_buffer.data(BufferData::make_data(x_geometry.vertices));
+    x_vertex_buffer.data(BufferData::make_data(x_geometry.vertices()));
 
     Buffer x_indices_buffer {GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
     x_indices_buffer.create();
-    x_indices_buffer.data(BufferData::make_data(x_geometry.indices));
+    x_indices_buffer.data(BufferData::make_data(x_geometry.indices()));
 
     x_vertex_array.init_attributes_of_type<vertex::diffuse>(diffuse_vertex_attributes);
 
     // ==================================================================================
 
-    mesh_geometry<vertex::texture> square_geometry;
+    MeshGeometry<vertex::texture> square_geometry;
 
-    square_geometry.vertices =
-    {
-        {{  128.0f,  128.0f, 0.0f }, { 1.0f, 1.0f } },
-        {{  128.0f, -128.0f, 0.0f }, { 1.0f, 0.0f } },
-        {{ -128.0f, -128.0f, 0.0f }, { 0.0f, 0.0f } },
-        {{ -128.0f,  128.0f, 0.0f }, { 0.0f, 1.0f } },
-    };
+    square_geometry.add_vertex({{  128.0f,  128.0f }, { 1.0f, 1.0f } });
+    square_geometry.add_vertex( {{  128.0f, -128.0f }, { 1.0f, 0.0f } });
+    square_geometry.add_vertex({{ -128.0f, -128.0f }, { 0.0f, 0.0f } });
+    square_geometry.add_vertex({{ -128.0f,  128.0f }, { 0.0f, 1.0f } });
 
-    square_geometry.indices =
-    {
-        0, 1, 3,
-        1, 2, 3
-    };
+    square_geometry.add_face(0, 1, 3);
+    square_geometry.add_face(1, 2, 3);
 
     std::vector<vertex_attribute> texture_vertex_attributes =
     {
-        { 0, 3, (int32_t)offsetof(vertex::texture, position) },
+        { 0, 2, (int32_t)offsetof(vertex::texture, position) },
         { 1, 2, (int32_t)offsetof(vertex::texture, uv) }
     };
 
@@ -196,11 +211,11 @@ int main()
 
     Buffer square_vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
     square_vertex_buffer.create();
-    square_vertex_buffer.data(BufferData::make_data(square_geometry.vertices));
+    square_vertex_buffer.data(BufferData::make_data(square_geometry.vertices()));
 
     Buffer square_indices_buffer { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
     square_indices_buffer.create();
-    square_indices_buffer.data(BufferData::make_data(square_geometry.indices));
+    square_indices_buffer.data(BufferData::make_data(square_geometry.indices()));
 
     square_vertex_array.init_attributes_of_type<vertex::texture>(texture_vertex_attributes);
 
@@ -260,6 +275,25 @@ int main()
 
     // ==================================================================================
 
+    btCollisionConfiguration* config  = new btDefaultCollisionConfiguration();
+    btCollisionDispatcher* dispatcher = new btCollisionDispatcher { config };
+    btBroadphaseInterface* broadphase = new btDbvtBroadphase();
+
+    btCollisionWorld* world = new btCollisionWorld { dispatcher, broadphase, config };
+
+    btTransform x_bt_transform;
+    x_bt_transform.setIdentity();
+
+    btCollisionShape*      x_shape = new btBoxShape({ 1.0f, 1.0f, 1.0f });
+    btCollisionObject* x_collision = new btCollisionObject();
+    x_collision->setCollisionShape(x_shape);
+    x_collision->setWorldTransform(x_bt_transform);
+    x_collision->setUserIndex(1);
+
+    world->addCollisionObject(x_collision);
+
+    // ==================================================================================
+
     const Time time;
     float fov = 60.0f;
 
@@ -274,6 +308,30 @@ int main()
         ortho_camera.ortho(0.0f, (float)width, 0.0f, (float)height);
 
         render_pass.viewport(0, 0, width, height);
+
+        // ==================================================================================
+
+        if (glfwGetMouseButton(((glfw::Window*)window.get())->handle(), GLFW_MOUSE_BUTTON_1))
+        {
+            double xpos, ypos;
+            glfwGetCursorPos(((glfw::Window*)window.get())->handle(), &xpos, &ypos);
+
+            float y = height - ypos;
+
+            glm::vec4 viewport { 0.0f, 0.0f, width, height };
+
+            glm::vec3 start = glm::unProject({ xpos, y, 0.0f }, perspective_camera_transform.matrix(), perspective_camera.projection(), viewport);
+            glm::vec3 end   = glm::unProject({ xpos, y, 1.0f }, perspective_camera_transform.matrix(), perspective_camera.projection(), viewport);
+
+            glm::vec3 direction = glm::normalize(end - start);
+
+            auto hit = cast(world, { start, direction }, 50.0f);
+
+            if (hit.hasHit())
+            {
+                std::cout << "hit\n";
+            }
+        }
 
         // ==================================================================================
 
@@ -326,7 +384,7 @@ int main()
         diffuse_program.bind();
 
         x_vertex_array.bind();
-        glDrawElements(GL_TRIANGLES, (int32_t)x_geometry.indices.size(), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, (int32_t)x_geometry.indices().size(), GL_UNSIGNED_INT, 0);
 
         // ==================================================================================
 
@@ -340,7 +398,7 @@ int main()
         test_texture.bind();
 
         square_vertex_array.bind();
-        glDrawElements(GL_TRIANGLES, (int32_t)square_geometry.indices.size(), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, (int32_t)square_geometry.indices().size(), GL_UNSIGNED_INT, 0);
 
         // ==================================================================================
 
