@@ -10,6 +10,7 @@
 #include "texture.hpp"
 #include "importer.hpp"
 #include "light.hpp"
+#include "physics.hpp"
 
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -39,25 +40,6 @@ void key_callback(GLFWwindow* handle, int key, int, int action, int)
             ((glfw::Window*)glfwGetWindowUserPointer(handle))->close();
         }
     }
-}
-
-struct ray
-{
-    glm::vec3 origin;
-    glm::vec3 direction;
-};
-
-btCollisionWorld::ClosestRayResultCallback cast(btCollisionWorld* world, const ray& ray, float distance)
-{
-    btVector3 origin    { ray.origin.x, ray.origin.y, ray.origin.z };
-    btVector3 direction { ray.direction.x, ray.direction.y, ray.direction.z };
-
-    btVector3 target = origin + direction * distance;
-
-    btCollisionWorld::ClosestRayResultCallback hit { origin, target };
-    world->rayTest(origin, target, hit);
-
-    return hit;
 }
 
 int main()
@@ -98,6 +80,30 @@ int main()
 
     // ==================================================================================
 
+    auto debug_vertex_source = File::read("../debug_vert.glsl");
+    auto debug_fragment_source = File::read("../debug_frag.glsl");
+
+    Shader debug_vertex_shader {"debug_vert.glsl", GL_VERTEX_SHADER };
+    debug_vertex_shader.create();
+    debug_vertex_shader.source(debug_vertex_source.data());
+    debug_vertex_shader.compile();
+
+    Shader debug_fragment_shader {"debug_frag.glsl", GL_FRAGMENT_SHADER };
+    debug_fragment_shader.create();
+    debug_fragment_shader.source(debug_fragment_source.data());
+    debug_fragment_shader.compile();
+
+    Program debug_program;
+    debug_program.create();
+    debug_program.attach(&debug_vertex_shader);
+    debug_program.attach(&debug_fragment_shader);
+    debug_program.link();
+
+    debug_program.detach(&debug_vertex_shader);
+    debug_program.detach(&debug_fragment_shader);
+
+    // ==================================================================================
+
     auto diffuse_vertex_source = File::read("../diffuse_vert.glsl");
     auto diffuse_fragment_source = File::read("../diffuse_frag.glsl");
 
@@ -122,27 +128,27 @@ int main()
 
     // ==================================================================================
 
-    auto texture_vertex_source = File::read("../texture_vert.glsl");
-    auto texture_fragment_source = File::read("../texture_frag.glsl");
+    auto sprite_vertex_source = File::read("../sprite_vert.glsl");
+    auto sprite_fragment_source = File::read("../sprite_frag.glsl");
 
-    Shader texture_vertex_shader { "texture_vert.gsl", GL_VERTEX_SHADER };
-    texture_vertex_shader.create();
-    texture_vertex_shader.source(texture_vertex_source.data());
-    texture_vertex_shader.compile();
+    Shader sprite_vertex_shader { "sprite_vert.gsl", GL_VERTEX_SHADER };
+    sprite_vertex_shader.create();
+    sprite_vertex_shader.source(sprite_vertex_source.data());
+    sprite_vertex_shader.compile();
 
-    Shader texture_fragment_shader { "texture_frag.glsl", GL_FRAGMENT_SHADER };
-    texture_fragment_shader.create();
-    texture_fragment_shader.source(texture_fragment_source.data());
-    texture_fragment_shader.compile();
+    Shader sprite_fragment_shader { "sprite_frag.glsl", GL_FRAGMENT_SHADER };
+    sprite_fragment_shader.create();
+    sprite_fragment_shader.source(sprite_fragment_source.data());
+    sprite_fragment_shader.compile();
 
-    Program texture_program;
-    texture_program.create();
-    texture_program.attach(&texture_vertex_shader);
-    texture_program.attach(&texture_fragment_shader);
-    texture_program.link();
+    Program sprite_program;
+    sprite_program.create();
+    sprite_program.attach(&sprite_vertex_shader);
+    sprite_program.attach(&sprite_fragment_shader);
+    sprite_program.link();
 
-    texture_program.detach(&texture_vertex_shader);
-    texture_program.detach(&texture_fragment_shader);
+    sprite_program.detach(&sprite_vertex_shader);
+    sprite_program.detach(&sprite_fragment_shader);
 
     // ==================================================================================
 
@@ -164,6 +170,28 @@ int main()
     test_texture.parameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     std::free(data);
+
+    // ==================================================================================
+
+    std::vector<vertex_attribute> debug_vertex_attributes =
+    {
+        { 0, 3, (int32_t)offsetof(vertex::debug, position) },
+        { 1, 3, (int32_t)offsetof(vertex::debug, color) }
+    };
+
+    VertexArray debug_vertex_array;
+    debug_vertex_array.create();
+    debug_vertex_array.bind();
+
+    Buffer debug_vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
+    debug_vertex_buffer.create();
+    debug_vertex_buffer.bind();
+
+    Buffer debug_indices_buffer { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
+    debug_indices_buffer.create();
+    debug_indices_buffer.bind();
+
+    debug_vertex_array.init_attributes_of_type<vertex::debug>(debug_vertex_attributes);
 
     // ==================================================================================
 
@@ -189,7 +217,7 @@ int main()
 
     // ==================================================================================
 
-    MeshGeometry<vertex::texture> square_geometry;
+    MeshGeometry<vertex::sprite> square_geometry;
 
     square_geometry.add_vertex({{  128.0f,  128.0f }, { 1.0f, 1.0f } });
     square_geometry.add_vertex( {{  128.0f, -128.0f }, { 1.0f, 0.0f } });
@@ -199,10 +227,10 @@ int main()
     square_geometry.add_face(0, 1, 3);
     square_geometry.add_face(1, 2, 3);
 
-    std::vector<vertex_attribute> texture_vertex_attributes =
+    std::vector<vertex_attribute> sprite_vertex_attributes =
     {
-        { 0, 2, (int32_t)offsetof(vertex::texture, position) },
-        { 1, 2, (int32_t)offsetof(vertex::texture, uv) }
+        { 0, 2, (int32_t)offsetof(vertex::sprite, position) },
+        { 1, 2, (int32_t)offsetof(vertex::sprite, uv) }
     };
 
     VertexArray square_vertex_array;
@@ -217,7 +245,7 @@ int main()
     square_indices_buffer.create();
     square_indices_buffer.data(BufferData::make_data(square_geometry.indices()));
 
-    square_vertex_array.init_attributes_of_type<vertex::texture>(texture_vertex_attributes);
+    square_vertex_array.init_attributes_of_type<vertex::sprite>(sprite_vertex_attributes);
 
     // ==================================================================================
 
@@ -275,22 +303,11 @@ int main()
 
     // ==================================================================================
 
-    btCollisionConfiguration* config  = new btDefaultCollisionConfiguration();
-    btCollisionDispatcher* dispatcher = new btCollisionDispatcher { config };
-    btBroadphaseInterface* broadphase = new btDbvtBroadphase();
+    Physics physics;
+    physics.init();
 
-    btCollisionWorld* world = new btCollisionWorld { dispatcher, broadphase, config };
-
-    btTransform x_bt_transform;
-    x_bt_transform.setIdentity();
-
-    btCollisionShape*      x_shape = new btBoxShape({ 1.0f, 1.0f, 1.0f });
-    btCollisionObject* x_collision = new btCollisionObject();
-    x_collision->setCollisionShape(x_shape);
-    x_collision->setWorldTransform(x_bt_transform);
-    x_collision->setUserIndex(1);
-
-    world->addCollisionObject(x_collision);
+    btCollisionShape* x_shape = new btBoxShape({ 1.0f, 1.0f, 1.0f });
+    physics.add_collision(1, x_shape, { });
 
     // ==================================================================================
 
@@ -299,6 +316,8 @@ int main()
 
     while (!window->closed())
     {
+        physics.debug();
+
         int32_t width  = window->width();
         int32_t height = window->height();
 
@@ -325,7 +344,8 @@ int main()
 
             glm::vec3 direction = glm::normalize(end - start);
 
-            auto hit = cast(world, { start, direction }, 50.0f);
+            auto hit = physics.cast({ {start.x, start.y, start.z },
+                                                                           { direction.x, direction.y, direction.z } }, 50.0f);
 
             if (hit.hasHit())
             {
@@ -388,13 +408,28 @@ int main()
 
         // ==================================================================================
 
+        matrices[0] = glm::mat4(1.0f);
+        matrices_buffer.data(BufferData::make_data(matrices));
+
+        const MeshGeometry<vertex::debug>& geometry = physics.physics_debug()->geometry();
+
+        debug_program.bind();
+
+        debug_vertex_array.bind();
+        debug_vertex_buffer.data(BufferData::make_data(geometry.vertices()));
+        debug_indices_buffer.data(BufferData::make_data(geometry.indices()));
+
+        glDrawElements(GL_LINES, (int32_t)geometry.indices().size(), GL_UNSIGNED_INT, 0);
+
+        // ==================================================================================
+
         matrices[0] = square_transform.matrix();
         matrices[1] = ortho_camera_transform.matrix();
         matrices[2] = ortho_camera.projection();
 
         matrices_buffer.data(BufferData::make_data(matrices));
 
-        texture_program.bind();
+        sprite_program.bind();
         test_texture.bind();
 
         square_vertex_array.bind();
@@ -407,6 +442,8 @@ int main()
         window->update();
         platform->update();
     }
+
+    physics.release();
 
     window->destroy();
     platform->release();
