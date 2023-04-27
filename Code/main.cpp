@@ -11,9 +11,10 @@
 #include "importer.hpp"
 #include "light.hpp"
 #include "physics.hpp"
+#include "editor.hpp"
+#include "light_window.hpp"
 
 #include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_opengl3.h>
 
 #include <btBulletCollisionCommon.h>
 
@@ -69,14 +70,6 @@ int main()
     }
 
     platform->vsync();
-
-    // ==================================================================================
-
-    ImGui::CreateContext();
-    ImGui_ImplGlfw_InitForOpenGL(((glfw::Window*)window.get())->handle(), true);
-    ImGui_ImplOpenGL3_Init("#version 130");
-
-    ImGuiIO& io = ImGui::GetIO();
 
     // ==================================================================================
 
@@ -254,8 +247,7 @@ int main()
 
     // ==================================================================================
 
-    rgb   light_color { 1.0f, 1.0f, 1.0f };
-    Light directional_light { { 0.0f, 0.0f, 5.0f }, light_color };
+    Light directional_light { { 0.0f, 0.0f, 5.0f }, { 1.0f, 1.0f, 1.0f } };
 
     // ==================================================================================
 
@@ -311,11 +303,23 @@ int main()
 
     // ==================================================================================
 
+    Editor editor;
+    editor.init(window.get());
+
+    LightWindow light_window;
+    light_window.set_light(&directional_light);
+
+    editor.add_window(&light_window);
+
+    // ==================================================================================
+
     const Time time;
     float fov = 60.0f;
 
     while (!window->closed())
     {
+        const float total_time = time.total_time();
+
         physics.debug();
 
         int32_t width  = window->width();
@@ -355,32 +359,24 @@ int main()
 
         // ==================================================================================
 
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame(width, height, time.total_time());
-
-        ImGui::NewFrame();
+        editor.begin(width, height, total_time);
 
         ImGui::Begin("RenderPass");
         ImGui::ColorEdit3("Clear color", (float*) &clear_color, ImGuiColorEditFlags_NoOptions);
         ImGui::ColorEdit3("Diffuse color", (float*) &x_material.diffuse, ImGuiColorEditFlags_NoOptions);
         ImGui::SliderFloat("Fov", &fov, 45, 120);
 
-        ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+        //ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
         ImGui::End();
 
         ImGui::Begin("Texture");
         ImGui::Image((void*)(intptr_t)test_texture.handle(), { 256, 256}); // TODO fix flipped image
         ImGui::End();
 
-        ImGui::Begin("Light");
-        ImGui::ColorEdit3("Color", (float*)&light_color, ImGuiColorEditFlags_NoOptions);
-        ImGui::End();
-
-        ImGui::Render();
+        editor.end();
 
         // ==================================================================================
 
-        directional_light.color(light_color);
         light_buffer.data(BufferData::make_data(&directional_light));
 
         // ==================================================================================
@@ -391,7 +387,7 @@ int main()
         // ==================================================================================
 
         x_transform.translate({ 0.0f, 0.0f, 0.0f })
-                   .rotate({ 0.0f, 1.0f, 0.0f }, time.total_time())
+                   .rotate({ 0.0f, 1.0f, 0.0f }, total_time)
                    .scale({ 0.5f, 0.5f, 0.5f });
 
         matrices[0] = x_transform.matrix();
@@ -437,7 +433,7 @@ int main()
 
         // ==================================================================================
 
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        editor.draw();
 
         window->update();
         platform->update();
