@@ -11,14 +11,20 @@
 #include "importer.hpp"
 #include "light.hpp"
 #include "physics.hpp"
+
+#include <btBulletCollisionCommon.h>
+#include <stb_image.h>
+
+// ==================================================================================
+
 #include "editor.hpp"
+#include "physics_debug.hpp"
 #include "light_window.hpp"
+#include "material_window.hpp"
 
 #include <backends/imgui_impl_glfw.h>
 
-#include <btBulletCollisionCommon.h>
-
-#include <stb_image.h>
+// ==================================================================================
 
 #define USE_GLFW
 #ifdef  USE_GLFW
@@ -212,6 +218,7 @@ int main()
 
     MeshGeometry<vertex::sprite> square_geometry;
 
+    square_geometry.begin();
     square_geometry.add_vertex({{  128.0f,  128.0f }, { 1.0f, 1.0f } });
     square_geometry.add_vertex( {{  128.0f, -128.0f }, { 1.0f, 0.0f } });
     square_geometry.add_vertex({{ -128.0f, -128.0f }, { 0.0f, 0.0f } });
@@ -219,6 +226,7 @@ int main()
 
     square_geometry.add_face(0, 1, 3);
     square_geometry.add_face(1, 2, 3);
+    square_geometry.end();
 
     std::vector<vertex_attribute> sprite_vertex_attributes =
     {
@@ -242,8 +250,7 @@ int main()
 
     // ==================================================================================
 
-    Material x_material;
-    x_material.diffuse = { 1.0f, 1.0f, 0.0f };
+    Material x_material { { 1.0f, 1.0f, 0.0f } };
 
     // ==================================================================================
 
@@ -295,8 +302,11 @@ int main()
 
     // ==================================================================================
 
-    Physics physics;
+    Physics    physics;
+    PhysicsDebug debug;
+
     physics.init();
+    physics.add_debug(&debug);
 
     btCollisionShape* x_shape = new btBoxShape({ 1.0f, 1.0f, 1.0f });
     physics.add_collision(1, x_shape, { });
@@ -309,7 +319,11 @@ int main()
     LightWindow light_window;
     light_window.set_light(&directional_light);
 
+    MaterialWindow material_window;
+    material_window.set_material(&x_material);
+
     editor.add_window(&light_window);
+    editor.add_window(&material_window);
 
     // ==================================================================================
 
@@ -363,7 +377,6 @@ int main()
 
         ImGui::Begin("RenderPass");
         ImGui::ColorEdit3("Clear color", (float*) &clear_color, ImGuiColorEditFlags_NoOptions);
-        ImGui::ColorEdit3("Diffuse color", (float*) &x_material.diffuse, ImGuiColorEditFlags_NoOptions);
         ImGui::SliderFloat("Fov", &fov, 45, 120);
 
         //ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
@@ -405,9 +418,9 @@ int main()
         // ==================================================================================
 
         matrices[0] = glm::mat4(1.0f);
-        matrices_buffer.data(BufferData::make_data(matrices));
+        matrices_buffer.sub_data(BufferData::make_data(&matrices[0]), 0);
 
-        const MeshGeometry<vertex::debug>& geometry = physics.physics_debug()->geometry();
+        const MeshGeometry<vertex::debug>& geometry = debug.geometry();
 
         debug_program.bind();
 
@@ -423,7 +436,7 @@ int main()
         matrices[1] = ortho_camera_transform.matrix();
         matrices[2] = ortho_camera.projection();
 
-        matrices_buffer.data(BufferData::make_data(matrices));
+        matrices_buffer.sub_data(BufferData::make_data(matrices));
 
         sprite_program.bind();
         test_texture.bind();
