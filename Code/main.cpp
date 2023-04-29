@@ -8,12 +8,12 @@
 #include "file.hpp"
 #include "material.hpp"
 #include "texture.hpp"
-#include "importer.hpp"
+#include "mesh_importer.hpp"
 #include "light.hpp"
 #include "physics.hpp"
+#include "texture_importer.hpp"
 
 #include <btBulletCollisionCommon.h>
-#include <stb_image.h>
 
 // ==================================================================================
 
@@ -21,6 +21,8 @@
 #include "physics_debug.hpp"
 #include "light_window.hpp"
 #include "material_window.hpp"
+#include "texture_window.hpp"
+#include "camera_window.hpp"
 
 #include <backends/imgui_impl_glfw.h>
 
@@ -52,7 +54,7 @@ void key_callback(GLFWwindow* handle, int key, int, int action, int)
 int main()
 {
     auto platform = platform_factory.create_platform();
-    auto window   = platform_factory.create_window(800, 600);
+    auto window   = platform_factory.create_window(1024, 768);
 
     if (!platform->init())
     {
@@ -151,24 +153,20 @@ int main()
 
     // ==================================================================================
 
-    auto x_geometry = Importer::load("../x.obj");
+    auto x_geometry = MeshImporter::load("../x.obj");
+
+    auto test_texture_data = TextureImporter::load("../texture.jpeg");
 
     // ==================================================================================
 
-    int32_t w, h, c;
-
-    stbi_set_flip_vertically_on_load(true);
-    auto   data = stbi_load("../texture.jpeg", &w, &h, &c, 0);
-    assert(data != nullptr);
-
     Texture test_texture { GL_TEXTURE_2D };
     test_texture.create();
-    test_texture.source({ data, w, h, GL_RGB });
+    test_texture.source(test_texture_data);
 
     test_texture.parameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     test_texture.parameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    std::free(data);
+    test_texture_data.release();
 
     // ==================================================================================
 
@@ -322,8 +320,16 @@ int main()
     MaterialWindow material_window;
     material_window.set_material(&x_material);
 
+    TextureWindow texture_window;
+    texture_window.set_texture(&test_texture, test_texture_data);
+
+    CameraWindow camera_window;
+    camera_window.set_camera(&perspective_camera, 60.0f);
+
     editor.add_window(&light_window);
     editor.add_window(&material_window);
+    editor.add_window(&texture_window);
+    editor.add_window(&camera_window);
 
     // ==================================================================================
 
@@ -378,12 +384,7 @@ int main()
         ImGui::Begin("RenderPass");
         ImGui::ColorEdit3("Clear color", (float*) &clear_color, ImGuiColorEditFlags_NoOptions);
         ImGui::SliderFloat("Fov", &fov, 45, 120);
-
         //ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-        ImGui::End();
-
-        ImGui::Begin("Texture");
-        ImGui::Image((void*)(intptr_t)test_texture.handle(), { 256, 256}); // TODO fix flipped image
         ImGui::End();
 
         editor.end();
