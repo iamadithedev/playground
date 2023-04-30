@@ -359,7 +359,7 @@ int main()
             double xpos, ypos;
             glfwGetCursorPos(((glfw::Window*)window.get())->handle(), &xpos, &ypos);
 
-            float y = height - ypos;
+            const float y = height - ypos;
 
             glm::vec4 viewport { 0.0f, 0.0f, width, height };
 
