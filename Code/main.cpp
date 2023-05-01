@@ -350,8 +350,6 @@ int main()
         perspective_camera.perspective(fov, ratio);
         ortho_camera.ortho(0.0f, (float)width, 0.0f, (float)height);
 
-        render_pass.viewport(0, 0, width, height);
-
         // ==================================================================================
 
         if (glfwGetMouseButton(((glfw::Window*)window.get())->handle(), GLFW_MOUSE_BUTTON_1))
@@ -395,6 +393,7 @@ int main()
 
         // ==================================================================================
 
+        render_pass.viewport(0, 0, width, height);
         render_pass.clear_color(clear_color.x, clear_color.y, clear_color.z);
         render_pass.clear_buffers();
 
@@ -419,7 +418,7 @@ int main()
         // ==================================================================================
 
         matrices[0] = glm::mat4(1.0f);
-        matrices_buffer.sub_data(BufferData::make_data(&matrices[0]), 0);
+        matrices_buffer.sub_data(BufferData::make_data(&matrices[0]));
 
         const MeshGeometry<vertex::debug>& geometry = debug.geometry();
 
