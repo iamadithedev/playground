@@ -420,7 +420,7 @@ int main()
         matrices[0] = glm::mat4(1.0f);
         matrices_buffer.sub_data(BufferData::make_data(&matrices[0]));
 
-        const MeshGeometry<vertex::debug>& geometry = debug.geometry();
+        const auto& geometry = debug.geometry();
 
         debug_program.bind();
 
