@@ -21,6 +21,7 @@
 #include "assets/texture_window.hpp"
 #include "components/camera_window.hpp"
 #include "components/light_window.hpp"
+#include "render_pass_window.hpp"
 
 // ==================================================================================
 
@@ -207,14 +208,15 @@ int main()
 
     // ==================================================================================
 
-    const RenderPass render_pass { GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT };
+    RenderPass render_pass { GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT };
 
     render_pass.enable(GL_DEPTH_TEST);
     render_pass.enable(GL_MULTISAMPLE);
 
-    // ==================================================================================
-
     rgb clear_color { 0.45f, 0.55f, 0.60f };
+    render_pass.clear_color(clear_color.r, clear_color.g, clear_color.b);
+
+    // ==================================================================================
 
     std::vector<glm::mat4> matrices { 3 };
 
@@ -262,10 +264,14 @@ int main()
     camera_window.set_camera(&perspective_camera);
     camera_window.set_transform(&perspective_camera_transform, perspective_camera_position);
 
+    RenderPassWindow render_pass_window;
+    render_pass_window.set_render_pass(&render_pass, clear_color);
+
     editor.add_window(&light_window);
     editor.add_window(&material_window);
     editor.add_window(&texture_window);
     editor.add_window(&camera_window);
+    editor.add_window(&render_pass_window);
 
     // ==================================================================================
 
@@ -308,18 +314,11 @@ int main()
         // ==================================================================================
 
         editor.begin(width, height, total_time);
-
-        //ImGui::Begin("RenderPass");
-        //ImGui::ColorEdit3("Clear color", (float*) &clear_color, ImGuiColorEditFlags_NoOptions);
-        //ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-        //ImGui::End();
-
         editor.end();
 
         // ==================================================================================
 
         render_pass.viewport(0, 0, width, height);
-        render_pass.clear_color(clear_color.r, clear_color.g, clear_color.b);
         render_pass.clear_buffers();
 
         // ==================================================================================
