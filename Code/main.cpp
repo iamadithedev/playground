@@ -113,7 +113,10 @@ int main()
 
     // ==================================================================================
 
-    auto x_geometry = MeshImporter::load("../x.obj");
+    auto geometries = MeshImporter::load("../playground.obj");
+
+    auto cube_geometry     = geometries[0];
+    auto cylinder_geometry = geometries[1];
 
     auto bricks_texture_data = TextureImporter::load("../texture.jpeg");
 
@@ -130,25 +133,41 @@ int main()
 
     // ==================================================================================
 
-    std::vector<vertex_attribute> diffuse_vertex_attributes =
+    vertex_attributes diffuse_vertex_attributes =
     {
         { 0, 3, (int32_t)offsetof(mesh_vertex::diffuse, position) },
         { 1, 3, (int32_t)offsetof(mesh_vertex::diffuse, normal) }
     };
 
-    VertexArray x_vertex_array;
-    x_vertex_array.create();
-    x_vertex_array.bind();
+    VertexArray cube_vertex_array;
+    cube_vertex_array.create();
+    cube_vertex_array.bind();
 
-    Buffer x_vertex_buffer {GL_ARRAY_BUFFER, GL_STATIC_DRAW };
-    x_vertex_buffer.create();
-    x_vertex_buffer.data(BufferData::make_data(x_geometry.vertices()));
+    Buffer cube_vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
+    cube_vertex_buffer.create();
+    cube_vertex_buffer.data(BufferData::make_data(cube_geometry.vertices()));
 
-    Buffer x_indices_buffer {GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
-    x_indices_buffer.create();
-    x_indices_buffer.data(BufferData::make_data(x_geometry.faces()));
+    Buffer cube_indices_buffer { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
+    cube_indices_buffer.create();
+    cube_indices_buffer.data(BufferData::make_data(cube_geometry.faces()));
 
-    x_vertex_array.init_attributes_of_type<mesh_vertex::diffuse>(diffuse_vertex_attributes);
+    cube_vertex_array.init_attributes_of_type<mesh_vertex::diffuse>(diffuse_vertex_attributes);
+
+    // ==================================================================================
+
+    VertexArray cylinder_vertex_array;
+    cylinder_vertex_array.create();
+    cylinder_vertex_array.bind();
+
+    Buffer cylinder_vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
+    cylinder_vertex_buffer.create();
+    cylinder_vertex_buffer.data(BufferData::make_data(cylinder_geometry.vertices()));
+
+    Buffer cylinder_indices_buffer { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
+    cylinder_indices_buffer.create();
+    cylinder_indices_buffer.data(BufferData::make_data(cylinder_geometry.faces()));
+
+    cylinder_vertex_array.init_attributes_of_type<mesh_vertex::diffuse>(diffuse_vertex_attributes);
 
     // ==================================================================================
 
@@ -164,7 +183,7 @@ int main()
     square_geometry.add_face({ 1, 2, 3 });
     square_geometry.end();
 
-    std::vector<vertex_attribute> sprite_vertex_attributes =
+    vertex_attributes sprite_vertex_attributes =
     {
         { 0, 2, (int32_t)offsetof(mesh_vertex::sprite, position) },
         { 1, 2, (int32_t)offsetof(mesh_vertex::sprite, uv) }
@@ -186,7 +205,8 @@ int main()
 
     // ==================================================================================
 
-    Material x_material { { 1.0f, 1.0f, 0.0f } };
+    Material cube_material { { 1.0f, 1.0f, 0.0f } };
+    Material cylinder_material { { 0.0f, 1.0f, 0.0f } };
 
     // ==================================================================================
 
@@ -228,15 +248,17 @@ int main()
     Transform perspective_camera_transform;
     Transform ortho_camera_transform;
 
-    vec3 perspective_camera_position { 0.0f, 0.0f, -5.0f };
+    vec3 perspective_camera_position { 0.0f, 0.0f, -15.0f };
     perspective_camera_transform.translate(perspective_camera_position);
 
     // ==================================================================================
 
-    Transform x_transform;
+    Transform cube_transform;
+    Transform cylinder_transform;
     Transform square_transform;
 
     square_transform.translate({ 128.0f, 128.0f, 0.0f });
+    cylinder_transform.translate({ 5.0f, 0.0f, 0.0f });
 
     // ==================================================================================
 
@@ -255,7 +277,7 @@ int main()
     light_window.set_light(&directional_light);
 
     MaterialWindow material_window;
-    material_window.set_material(&x_material);
+    material_window.set_material(&cube_material);
 
     TextureWindow texture_window;
     texture_window.set_texture(&bricks_texture, bricks_texture_data);
@@ -337,22 +359,30 @@ int main()
 
         // ==================================================================================
 
-        x_transform.translate({ 0.0f, 0.0f, 0.0f })
-                   .rotate({ 0.0f, 1.0f, 0.0f }, total_time)
-                   .scale({ 0.5f, 0.5f, 0.5f });
+        cube_transform.translate({0.0f, 0.0f, 0.0f })
+                      .rotate({ 0.0f, 1.0f, 0.0f }, total_time);
 
-        matrices[0] = x_transform.matrix();
+        matrices[0] = cube_transform.matrix();
         matrices[1] = perspective_camera_transform.matrix();
         matrices[2] = perspective_camera.projection();
 
         matrices_buffer.sub_data(BufferData::make_data(matrices));
-        material_buffer.data(BufferData::make_data(&x_material));
+        material_buffer.data(BufferData::make_data(&cube_material));
         light_buffer.data(BufferData::make_data(&directional_light));
 
         diffuse_program.bind();
 
-        x_vertex_array.bind();
-        glDrawElements(GL_TRIANGLES, (int32_t)x_geometry.faces().size() * 3, GL_UNSIGNED_INT, 0);
+        cube_vertex_array.bind();
+        glDrawElements(GL_TRIANGLES, (int32_t)cube_geometry.faces().size() * 3, GL_UNSIGNED_INT, 0);
+
+        // ==================================================================================
+
+        matrices[0] = cylinder_transform.matrix();
+        matrices_buffer.sub_data(BufferData::make_data(matrices));
+        material_buffer.sub_data(BufferData::make_data(&cylinder_material));
+
+        cylinder_vertex_array.bind();
+        glDrawElements(GL_TRIANGLES, (int32_t)cylinder_geometry.faces().size() * 3, GL_UNSIGNED_INT, 0);
 
         // ==================================================================================
 
