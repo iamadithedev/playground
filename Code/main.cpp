@@ -248,7 +248,7 @@ int main()
     Transform perspective_camera_transform;
     Transform ortho_camera_transform;
 
-    vec3 perspective_camera_position { 0.0f, 0.0f, -15.0f };
+    vec3 perspective_camera_position { 0.0f, 0.0f, -12.0f };
     perspective_camera_transform.translate(perspective_camera_position);
 
     // ==================================================================================
@@ -258,7 +258,7 @@ int main()
     Transform square_transform;
 
     square_transform.translate({ 128.0f, 128.0f, 0.0f });
-    cylinder_transform.translate({ 5.0f, 0.0f, 0.0f });
+    cylinder_transform.translate({ 2.0f, 0.0f, 0.0f });
 
     // ==================================================================================
 
@@ -359,7 +359,7 @@ int main()
 
         // ==================================================================================
 
-        cube_transform.translate({0.0f, 0.0f, 0.0f })
+        cube_transform.translate({-2.0f, 0.0f, 0.0f })
                       .rotate({ 0.0f, 1.0f, 0.0f }, total_time);
 
         matrices[0] = cube_transform.matrix();
