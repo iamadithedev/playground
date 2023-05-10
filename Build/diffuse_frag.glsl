@@ -3,6 +3,8 @@
 layout (location = 0) in vec3 in_position;
 layout (location = 1) in vec3 in_normal;
 
+layout (location = 0) out vec4 out_color;
+
 layout (binding = 1, std140) uniform u_material
 {
    vec3 diffuse;
@@ -14,8 +16,6 @@ layout (binding = 2, std140) uniform u_light
     float temp;
     vec3  color;
 } light;
-
-layout (location = 0) out vec4 out_color;
 
 void main()
 {
