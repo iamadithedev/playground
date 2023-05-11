@@ -10,6 +10,7 @@
 #include "texture.hpp"
 #include "light.hpp"
 #include "physics.hpp"
+#include "physics_shapes.hpp"
 #include "mesh_importer.hpp"
 #include "texture_importer.hpp"
 
@@ -257,16 +258,19 @@ int main()
     Transform cylinder_transform;
     Transform square_transform;
 
+    vec3 cube_position { -2.0f, 0.0f, 0.0f };
+    vec3 cylinder_position { 2.0f, 0.0f, 0.0f };
+
     square_transform.translate({ 128.0f, 128.0f, 0.0f });
-    cylinder_transform.translate({ 2.0f, 0.0f, 0.0f });
+    cylinder_transform.translate(cylinder_position);
 
     // ==================================================================================
 
     Physics physics;
     physics.init();
 
-    btCollisionShape* x_shape = new btBoxShape({ 1.0f, 1.0f, 1.0f });
-    physics.add_collision(1, x_shape, { });
+    auto cube_shape = PhysicsShapes::create_box({ 1.0f, 1.0f, 1.0f });
+    physics.add_collision(1, cube_shape, cube_position);
 
     // ==================================================================================
 
@@ -307,8 +311,6 @@ int main()
 
         width  = window->size().width;
         height = window->size().height;
-
-        const float ratio = (float) width / (float) height;
 
         perspective_camera.resize((float)width, (float)height);
         ortho_camera.resize((float)width, (float)height);
@@ -359,7 +361,7 @@ int main()
 
         // ==================================================================================
 
-        cube_transform.translate({-2.0f, 0.0f, 0.0f })
+        cube_transform.translate(cube_position)
                       .rotate({ 0.0f, 1.0f, 0.0f }, total_time);
 
         matrices[0] = cube_transform.matrix();
