@@ -13,6 +13,7 @@
 #include "physics_shapes.hpp"
 #include "mesh_importer.hpp"
 #include "texture_importer.hpp"
+#include "mesh_part.hpp"
 
 // ==================================================================================
 
@@ -176,7 +177,7 @@ int main()
 
     square_geometry.begin();
     square_geometry.add_vertex({{  128.0f,  128.0f }, { 1.0f, 1.0f } });
-    square_geometry.add_vertex( {{  128.0f, -128.0f }, { 1.0f, 0.0f } });
+    square_geometry.add_vertex({{  128.0f, -128.0f }, { 1.0f, 0.0f } });
     square_geometry.add_vertex({{ -128.0f, -128.0f }, { 0.0f, 0.0f } });
     square_geometry.add_vertex({{ -128.0f,  128.0f }, { 0.0f, 1.0f } });
 
