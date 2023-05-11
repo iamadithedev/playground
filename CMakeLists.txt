@@ -4,6 +4,3 @@ project(Playground)
 
 add_subdirectory(Code)
 add_subdirectory(Libraries)
-
-add_subdirectory(Engine)
-add_subdirectory(Editor)
