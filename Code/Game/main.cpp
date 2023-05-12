@@ -250,7 +250,7 @@ int main()
     Transform perspective_camera_transform;
     Transform ortho_camera_transform;
 
-    vec3 perspective_camera_position { 0.0f, 0.0f, -12.0f };
+    vec3 perspective_camera_position { 0.0f, 0.0f, -8.0f };
     perspective_camera_transform.translate(perspective_camera_position);
 
     // ==================================================================================
