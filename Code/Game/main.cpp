@@ -195,7 +195,7 @@ int main()
 
     MeshGeometry<mesh_vertex::sprite, primitive::triangle> square_geometry;
 
-    square_geometry.begin();
+    square_geometry.begin(4, 2);
     square_geometry.add_vertex({{  128.0f,  128.0f }, { 1.0f, 1.0f } });
     square_geometry.add_vertex({{  128.0f, -128.0f }, { 1.0f, 0.0f } });
     square_geometry.add_vertex({{ -128.0f, -128.0f }, { 0.0f, 0.0f } });
