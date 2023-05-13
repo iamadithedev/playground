@@ -13,7 +13,7 @@
 #include "physics_shapes.hpp"
 #include "mesh_importer.hpp"
 #include "texture_importer.hpp"
-#include "mesh_part.hpp"
+#include "combine_geometry.hpp"
 
 // ==================================================================================
 
@@ -29,14 +29,18 @@
 
 #define USE_GLFW
 #ifdef  USE_GLFW
-    #include "glfw/platform_factory.hpp"
-    #include "glfw/platform.hpp"
 
-    glfw::PlatformFactory platform_factory;
+#include "glfw/platform_factory.hpp"
+#include "glfw/platform.hpp"
+
+glfw::PlatformFactory platform_factory;
+
 #else
-    #include "Windows/platform_factory.hpp"
 
-    windows::PlatformFactory platform_factory;
+#include "Windows/platform_factory.hpp"
+
+windows::PlatformFactory platform_factory;
+
 #endif
 
 int main()
@@ -71,54 +75,80 @@ int main()
 
     // ==================================================================================
 
-    auto diffuse_vertex_source = File::read("../diffuse_vert.glsl");
-    auto diffuse_fragment_source = File::read("../diffuse_frag.glsl");
+    auto diffuse_vert_source = File::read("../diffuse_vert.glsl");
+    auto diffuse_vert_instance_source = File::read("../diffuse_vert_instance.glsl");
+    auto diffuse_frag_source = File::read("../diffuse_frag.glsl");
 
-    Shader diffuse_vertex_shader {"diffuse_vert.glsl", GL_VERTEX_SHADER };
-    diffuse_vertex_shader.create();
-    diffuse_vertex_shader.source(diffuse_vertex_source.data());
+    Shader diffuse_vert_shader {"diffuse_vert.glsl", GL_VERTEX_SHADER };
+    diffuse_vert_shader.create();
+    diffuse_vert_shader.source(diffuse_vert_source.data());
 
-    Shader diffuse_fragment_shader {"diffuse_frag.glsl", GL_FRAGMENT_SHADER };
-    diffuse_fragment_shader.create();
-    diffuse_fragment_shader.source(diffuse_fragment_source.data());
+    Shader diffuse_vert_instance_shader {"diffuse_vert_instance.glsl", GL_VERTEX_SHADER };
+    diffuse_vert_instance_shader.create();
+    diffuse_vert_instance_shader.source(diffuse_vert_instance_source.data());
+
+    Shader diffuse_frag_shader {"diffuse_frag.glsl", GL_FRAGMENT_SHADER };
+    diffuse_frag_shader.create();
+    diffuse_frag_shader.source(diffuse_frag_source.data());
 
     Program diffuse_program;
     diffuse_program.create();
-    diffuse_program.attach(&diffuse_vertex_shader);
-    diffuse_program.attach(&diffuse_fragment_shader);
+    diffuse_program.attach(&diffuse_vert_shader);
+    diffuse_program.attach(&diffuse_frag_shader);
     diffuse_program.link();
 
-    diffuse_program.detach(&diffuse_vertex_shader);
-    diffuse_program.detach(&diffuse_fragment_shader);
+    Program diffuse_instance_program;
+    diffuse_instance_program.create();
+    diffuse_instance_program.attach(&diffuse_vert_instance_shader);
+    diffuse_instance_program.attach(&diffuse_frag_shader);
+    diffuse_instance_program.link();
+
+    diffuse_program.detach(&diffuse_vert_shader);
+    diffuse_program.detach(&diffuse_frag_shader);
+
+    diffuse_instance_program.detach(&diffuse_vert_instance_shader);
+    diffuse_instance_program.detach(&diffuse_frag_shader);
+
+    diffuse_vert_shader.destroy();
+    diffuse_vert_instance_shader.destroy();
+    diffuse_frag_shader.destroy();
 
     // ==================================================================================
 
-    auto sprite_vertex_source = File::read("../sprite_vert.glsl");
-    auto sprite_fragment_source = File::read("../sprite_frag.glsl");
+    auto sprite_vert_source = File::read("../sprite_vert.glsl");
+    auto sprite_frag_source = File::read("../sprite_frag.glsl");
 
-    Shader sprite_vertex_shader { "sprite_vert.gsl", GL_VERTEX_SHADER };
-    sprite_vertex_shader.create();
-    sprite_vertex_shader.source(sprite_vertex_source.data());
+    Shader sprite_vert_shader {"sprite_vert.gsl", GL_VERTEX_SHADER };
+    sprite_vert_shader.create();
+    sprite_vert_shader.source(sprite_vert_source.data());
 
-    Shader sprite_fragment_shader { "sprite_frag.glsl", GL_FRAGMENT_SHADER };
-    sprite_fragment_shader.create();
-    sprite_fragment_shader.source(sprite_fragment_source.data());
+    Shader sprite_frag_shader {"sprite_frag.glsl", GL_FRAGMENT_SHADER };
+    sprite_frag_shader.create();
+    sprite_frag_shader.source(sprite_frag_source.data());
 
     Program sprite_program;
     sprite_program.create();
-    sprite_program.attach(&sprite_vertex_shader);
-    sprite_program.attach(&sprite_fragment_shader);
+    sprite_program.attach(&sprite_vert_shader);
+    sprite_program.attach(&sprite_frag_shader);
     sprite_program.link();
 
-    sprite_program.detach(&sprite_vertex_shader);
-    sprite_program.detach(&sprite_fragment_shader);
+    sprite_program.detach(&sprite_vert_shader);
+    sprite_program.detach(&sprite_frag_shader);
+
+    sprite_vert_shader.destroy();
+    sprite_frag_shader.destroy();
 
     // ==================================================================================
 
-    auto geometries = MeshImporter::load("../playground.obj");
+    auto playground_geometries = MeshImporter::load("../playground.obj");
 
-    auto cube_geometry     = geometries[0];
-    auto cylinder_geometry = geometries[1];
+    CombineGeometry scene_geometry;
+    scene_geometry.combine(playground_geometries);
+
+    auto cube_mesh_part     = scene_geometry.submeshes()[0];
+    auto cylinder_mesh_part = scene_geometry.submeshes()[1];
+
+    // ==================================================================================
 
     auto bricks_texture_data = TextureImporter::load("../texture.jpeg");
 
@@ -141,39 +171,29 @@ int main()
         { 1, 3, (int32_t)offsetof(mesh_vertex::diffuse, normal) }
     };
 
-    VertexArray cube_vertex_array;
-    cube_vertex_array.create();
-    cube_vertex_array.bind();
+    VertexArray scene_vao;
+    scene_vao.create();
+    scene_vao.bind();
 
-    Buffer cube_vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
-    cube_vertex_buffer.create();
-    cube_vertex_buffer.data(BufferData::make_data(cube_geometry.vertices()));
+    Buffer scene_vbo { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
+    scene_vbo.create();
+    scene_vbo.data(BufferData::make_data(scene_geometry.vertices()));
 
-    Buffer cube_indices_buffer { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
-    cube_indices_buffer.create();
-    cube_indices_buffer.data(BufferData::make_data(cube_geometry.faces()));
+    Buffer scene_ibo { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
+    scene_ibo.create();
+    scene_ibo.data(BufferData::make_data(scene_geometry.faces()));
 
-    cube_vertex_array.init_attributes_of_type<mesh_vertex::diffuse>(diffuse_vertex_attributes);
-
-    // ==================================================================================
-
-    VertexArray cylinder_vertex_array;
-    cylinder_vertex_array.create();
-    cylinder_vertex_array.bind();
-
-    Buffer cylinder_vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
-    cylinder_vertex_buffer.create();
-    cylinder_vertex_buffer.data(BufferData::make_data(cylinder_geometry.vertices()));
-
-    Buffer cylinder_indices_buffer { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
-    cylinder_indices_buffer.create();
-    cylinder_indices_buffer.data(BufferData::make_data(cylinder_geometry.faces()));
-
-    cylinder_vertex_array.init_attributes_of_type<mesh_vertex::diffuse>(diffuse_vertex_attributes);
+    scene_vao.init_attributes_of_type<mesh_vertex::diffuse>(diffuse_vertex_attributes);
 
     // ==================================================================================
 
-    MeshGeometry<mesh_vertex::sprite, triangle> square_geometry;
+    vertex_attributes sprite_vertex_attributes =
+    {
+        { 0, 2, (int32_t)offsetof(mesh_vertex::sprite, position) },
+        { 1, 2, (int32_t)offsetof(mesh_vertex::sprite, uv) }
+    };
+
+    MeshGeometry<mesh_vertex::sprite, primitive::triangle> square_geometry;
 
     square_geometry.begin();
     square_geometry.add_vertex({{  128.0f,  128.0f }, { 1.0f, 1.0f } });
@@ -185,29 +205,25 @@ int main()
     square_geometry.add_face({ 1, 2, 3 });
     square_geometry.end();
 
-    vertex_attributes sprite_vertex_attributes =
-    {
-        { 0, 2, (int32_t)offsetof(mesh_vertex::sprite, position) },
-        { 1, 2, (int32_t)offsetof(mesh_vertex::sprite, uv) }
-    };
+    auto square_mesh_part = square_geometry.get_mesh_part();
 
-    VertexArray square_vertex_array;
-    square_vertex_array.create();
-    square_vertex_array.bind();
+    VertexArray square_vao;
+    square_vao.create();
+    square_vao.bind();
 
-    Buffer square_vertex_buffer { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
-    square_vertex_buffer.create();
-    square_vertex_buffer.data(BufferData::make_data(square_geometry.vertices()));
+    Buffer square_vbo {GL_ARRAY_BUFFER, GL_STATIC_DRAW };
+    square_vbo.create();
+    square_vbo.data(BufferData::make_data(square_geometry.vertices()));
 
-    Buffer square_indices_buffer { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
-    square_indices_buffer.create();
-    square_indices_buffer.data(BufferData::make_data(square_geometry.faces()));
+    Buffer square_ibo {GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
+    square_ibo.create();
+    square_ibo.data(BufferData::make_data(square_geometry.faces()));
 
-    square_vertex_array.init_attributes_of_type<mesh_vertex::sprite>(sprite_vertex_attributes);
+    square_vao.init_attributes_of_type<mesh_vertex::sprite>(sprite_vertex_attributes);
 
     // ==================================================================================
 
-    Material cube_material { { 1.0f, 1.0f, 0.0f } };
+    Material cube_material     { { 1.0f, 1.0f, 0.0f } };
     Material cylinder_material { { 0.0f, 1.0f, 0.0f } };
 
     // ==================================================================================
@@ -216,17 +232,17 @@ int main()
 
     // ==================================================================================
 
-    Buffer matrices_buffer { GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
-    matrices_buffer.create();
-    matrices_buffer.bind_at_location(0);
+    Buffer matrices_ubo {GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
+    matrices_ubo.create();
+    matrices_ubo.bind_at_location(0);
 
-    Buffer material_buffer { GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
-    material_buffer.create();
-    material_buffer.bind_at_location(1);
+    Buffer material_ubo {GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
+    material_ubo.create();
+    material_ubo.bind_at_location(1);
 
-    Buffer light_buffer { GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
-    light_buffer.create();
-    light_buffer.bind_at_location(2);
+    Buffer light_ubo {GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
+    light_ubo.create();
+    light_ubo.bind_at_location(2);
 
     // ==================================================================================
 
@@ -240,18 +256,19 @@ int main()
 
     // ==================================================================================
 
-    std::vector<glm::mat4> matrices { 3 };
+    std::vector<glm::mat4> matrices          { 3 };
+    std::vector<glm::mat4> matrices_instance { 9 };
 
     // ==================================================================================
 
-    Camera perspective_camera { 60.0f };
     Camera ortho_camera;
+    Camera scene_camera { 60.0f };
 
-    Transform perspective_camera_transform;
     Transform ortho_camera_transform;
+    Transform scene_camera_transform;
 
-    vec3 perspective_camera_position { 0.0f, 0.0f, -8.0f };
-    perspective_camera_transform.translate(perspective_camera_position);
+    vec3 scene_camera_position {0.0f, 0.0f, -8.0f };
+         scene_camera_transform.translate(scene_camera_position);
 
     // ==================================================================================
 
@@ -259,11 +276,11 @@ int main()
     Transform cylinder_transform;
     Transform square_transform;
 
-    vec3 cube_position { -2.0f, 0.0f, 0.0f };
+    vec3 cube_position     { -2.0f, 0.0f, 0.0f };
     vec3 cylinder_position { 2.0f, 0.0f, 0.0f };
 
-    square_transform.translate({ 128.0f, 128.0f, 0.0f });
     cylinder_transform.translate(cylinder_position);
+    square_transform.translate({ 128.0f, 128.0f, 0.0f });
 
     // ==================================================================================
 
@@ -288,8 +305,8 @@ int main()
     texture_window.set_texture(&bricks_texture, bricks_texture_data);
 
     CameraWindow camera_window;
-    camera_window.set_camera(&perspective_camera);
-    camera_window.set_transform(&perspective_camera_transform, perspective_camera_position);
+    camera_window.set_camera(&scene_camera);
+    camera_window.set_transform(&scene_camera_transform, scene_camera_position);
 
     RenderPassWindow render_pass_window;
     render_pass_window.set_render_pass(&render_pass, clear_color);
@@ -313,7 +330,7 @@ int main()
         width  = window->size().width;
         height = window->size().height;
 
-        perspective_camera.resize((float)width, (float)height);
+        scene_camera.resize((float)width, (float)height);
         ortho_camera.resize((float)width, (float)height);
 
         // ==================================================================================
@@ -322,7 +339,7 @@ int main()
         {
             vec2 mouse_position = input->mouse_position(window.get());
 
-            auto ray = perspective_camera.screen_to_world(perspective_camera_transform.matrix(), mouse_position);
+            auto ray = scene_camera.screen_to_world(scene_camera_transform.matrix(), mouse_position);
             auto hit = physics.cast(ray, 50.0f);
 
             if (hit.hasHit())
@@ -352,13 +369,13 @@ int main()
         matrices[1] = ortho_camera_transform.matrix();
         matrices[2] = ortho_camera.projection();
 
-        matrices_buffer.data(BufferData::make_data(matrices));
+        matrices_ubo.data(BufferData::make_data(matrices));
 
         sprite_program.bind();
         bricks_texture.bind();
 
-        square_vertex_array.bind();
-        glDrawElements(GL_TRIANGLES, (int32_t)square_geometry.faces().size() * 3, GL_UNSIGNED_INT, 0);
+        square_vao.bind();
+        glDrawElements(GL_TRIANGLES, square_mesh_part.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(square_mesh_part.index));
 
         // ==================================================================================
 
@@ -366,30 +383,28 @@ int main()
                       .rotate({ 0.0f, 1.0f, 0.0f }, total_time);
 
         matrices[0] = cube_transform.matrix();
-        matrices[1] = perspective_camera_transform.matrix();
-        matrices[2] = perspective_camera.projection();
+        matrices[1] = scene_camera_transform.matrix();
+        matrices[2] = scene_camera.projection();
 
-        matrices_buffer.sub_data(BufferData::make_data(matrices));
-        material_buffer.data(BufferData::make_data(&cube_material));
-        light_buffer.data(BufferData::make_data(&directional_light));
+        matrices_ubo.sub_data(BufferData::make_data(matrices));
+        material_ubo.data(BufferData::make_data(&cube_material));
+        light_ubo.data(BufferData::make_data(&directional_light));
 
         diffuse_program.bind();
 
-        cube_vertex_array.bind();
-        glDrawElements(GL_TRIANGLES, (int32_t)cube_geometry.faces().size() * 3, GL_UNSIGNED_INT, 0);
+        scene_vao.bind();
+        glDrawElements(GL_TRIANGLES, cube_mesh_part.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(cube_mesh_part.index));
 
         // ==================================================================================
 
-        matrices[0] = cylinder_transform.matrix();
-        matrices_buffer.sub_data(BufferData::make_data(matrices));
-        material_buffer.sub_data(BufferData::make_data(&cylinder_material));
+        matrices_ubo.sub_data(BufferData::make_data(&cylinder_transform.matrix()));
+        material_ubo.sub_data(BufferData::make_data(&cylinder_material));
 
-        cylinder_vertex_array.bind();
-        glDrawElements(GL_TRIANGLES, (int32_t)cylinder_geometry.faces().size() * 3, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, cylinder_mesh_part.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(cylinder_mesh_part.index));
 
         // ==================================================================================
 
-        editor.draw(&matrices_buffer);
+        editor.draw(&matrices_ubo);
 
         window->update();
         platform->update();
