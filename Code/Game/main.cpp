@@ -75,21 +75,25 @@ int main()
 
     // ==================================================================================
 
-    auto diffuse_vert_source = File::read("../diffuse_vert.glsl");
-    auto diffuse_vert_instance_source = File::read("../diffuse_vert_instance.glsl");
-    auto diffuse_frag_source = File::read("../diffuse_frag.glsl");
+    auto diffuse_vert_source = File::read<char>("../glsl/diffuse.vert.glsl");
+    auto diffuse_vert_instance_source = File::read<char>("../glsl/diffuse_instance.vert.glsl");
+    auto diffuse_frag_source = File::read<char>("../glsl/diffuse.frag.glsl");
 
-    Shader diffuse_vert_shader {"diffuse_vert.glsl", GL_VERTEX_SHADER };
+    auto diffuse_vert_binary_source = File::read<std::byte>("../spv/diffuse.vert.spv");
+    auto diffuse_instance_vert_binary_source = File::read<std::byte>("../spv/diffuse_instance.vert.spv");
+    auto diffuse_frag_binary_source = File::read<std::byte>("../spv/diffuse.frag.spv");
+
+    Shader diffuse_vert_shader {"diffuse.vert.glsl", GL_VERTEX_SHADER };
     diffuse_vert_shader.create();
-    diffuse_vert_shader.source(diffuse_vert_source.data());
+    diffuse_vert_shader.source(diffuse_vert_binary_source);
 
-    Shader diffuse_vert_instance_shader {"diffuse_vert_instance.glsl", GL_VERTEX_SHADER };
+    Shader diffuse_vert_instance_shader {"diffuse_instance.vert.glsl", GL_VERTEX_SHADER };
     diffuse_vert_instance_shader.create();
-    diffuse_vert_instance_shader.source(diffuse_vert_instance_source.data());
+    diffuse_vert_instance_shader.source(diffuse_instance_vert_binary_source);
 
-    Shader diffuse_frag_shader {"diffuse_frag.glsl", GL_FRAGMENT_SHADER };
+    Shader diffuse_frag_shader {"diffuse.frag.glsl", GL_FRAGMENT_SHADER };
     diffuse_frag_shader.create();
-    diffuse_frag_shader.source(diffuse_frag_source.data());
+    diffuse_frag_shader.source(diffuse_frag_binary_source);
 
     Program diffuse_program;
     diffuse_program.create();
@@ -115,14 +119,14 @@ int main()
 
     // ==================================================================================
 
-    auto sprite_vert_source = File::read("../sprite_vert.glsl");
-    auto sprite_frag_source = File::read("../sprite_frag.glsl");
+    auto sprite_vert_source = File::read<char>("../glsl/sprite.vert.glsl");
+    auto sprite_frag_source = File::read<char>("../glsl/sprite.frag.glsl");
 
-    Shader sprite_vert_shader {"sprite_vert.gsl", GL_VERTEX_SHADER };
+    Shader sprite_vert_shader {"sprite.vert.gsl", GL_VERTEX_SHADER };
     sprite_vert_shader.create();
     sprite_vert_shader.source(sprite_vert_source.data());
 
-    Shader sprite_frag_shader {"sprite_frag.glsl", GL_FRAGMENT_SHADER };
+    Shader sprite_frag_shader {"sprite.frag.glsl", GL_FRAGMENT_SHADER };
     sprite_frag_shader.create();
     sprite_frag_shader.source(sprite_frag_source.data());
 
@@ -150,7 +154,7 @@ int main()
 
     // ==================================================================================
 
-    auto bricks_texture_data = TextureImporter::load("../texture.jpeg");
+    auto bricks_texture_data = TextureImporter::load("../bricks.jpeg");
 
     // ==================================================================================
 
@@ -167,8 +171,8 @@ int main()
 
     vertex_attributes diffuse_vertex_attributes =
     {
-        { 0, 3, (int32_t)offsetof(mesh_vertex::diffuse, position) },
-        { 1, 3, (int32_t)offsetof(mesh_vertex::diffuse, normal) }
+        { 0, 3, GL_FLOAT, (int32_t)offsetof(mesh_vertex::diffuse, position) },
+        { 1, 3, GL_FLOAT, (int32_t)offsetof(mesh_vertex::diffuse, normal) }
     };
 
     VertexArray scene_vao;
@@ -189,8 +193,8 @@ int main()
 
     vertex_attributes sprite_vertex_attributes =
     {
-        { 0, 2, (int32_t)offsetof(mesh_vertex::sprite, position) },
-        { 1, 2, (int32_t)offsetof(mesh_vertex::sprite, uv) }
+        { 0, 2, GL_FLOAT, (int32_t)offsetof(mesh_vertex::sprite, position) },
+        { 1, 2, GL_FLOAT, (int32_t)offsetof(mesh_vertex::sprite, uv) }
     };
 
     MeshGeometry<mesh_vertex::sprite, primitive::triangle> square_geometry;
@@ -252,7 +256,7 @@ int main()
     render_pass.enable(GL_MULTISAMPLE);
 
     rgb clear_color { 0.45f, 0.55f, 0.60f };
-    render_pass.clear_color(clear_color.r, clear_color.g, clear_color.b);
+    render_pass.clear_color(clear_color);
 
     // ==================================================================================
 
@@ -360,7 +364,7 @@ int main()
 
         // ==================================================================================
 
-        render_pass.viewport(0, 0, width, height);
+        render_pass.viewport({ 0, 0 }, { width, height });
         render_pass.clear_buffers();
 
         // ==================================================================================
