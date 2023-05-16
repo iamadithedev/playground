@@ -150,9 +150,9 @@ int main()
     CombineGeometry scene_geometry;
     scene_geometry.combine(playground_geometries);
 
-    auto cube_mesh_part     = scene_geometry.submeshes()[0];
-    auto cylinder_mesh_part = scene_geometry.submeshes()[1];
-    auto sphere_mesh_part   = scene_geometry.submeshes()[2];
+    auto cube_submesh     = scene_geometry.submeshes()[0];
+    auto cylinder_submesh = scene_geometry.submeshes()[1];
+    auto sphere_submesh   = scene_geometry.submeshes()[2];
 
     // ==================================================================================
 
@@ -217,7 +217,7 @@ int main()
     square_geometry.add_face({ 1, 2, 3 });
     square_geometry.end();
 
-    auto square_mesh_part = square_geometry.get_mesh_part();
+    auto square_submesh = square_geometry.get_submesh();
 
     VertexArray square_vao;
     square_vao.create();
@@ -393,7 +393,7 @@ int main()
         bricks_texture.bind();
 
         square_vao.bind();
-        glDrawElements(GL_TRIANGLES, square_mesh_part.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(square_mesh_part.index));
+        glDrawElements(GL_TRIANGLES, square_submesh.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(square_submesh.index));
 
         // ==================================================================================
 
@@ -421,7 +421,7 @@ int main()
         light_ubo.data(BufferData::make_data(&directional_light));
 
         scene_vao.bind();
-        glDrawElementsInstanced(GL_TRIANGLES, sphere_mesh_part.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(sphere_mesh_part.index), 9);
+        glDrawElementsInstanced(GL_TRIANGLES, sphere_submesh.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(sphere_submesh.index), 9);
 
         // ==================================================================================
 
@@ -433,14 +433,14 @@ int main()
         matrices_ubo.sub_data(BufferData::make_data(&cube_transform.matrix()));
         material_ubo.sub_data(BufferData::make_data(&cube_material));
 
-        glDrawElements(GL_TRIANGLES, cube_mesh_part.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(cube_mesh_part.index));
+        glDrawElements(GL_TRIANGLES, cube_submesh.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(cube_submesh.index));
 
         // ==================================================================================
 
         matrices_ubo.sub_data(BufferData::make_data(&cylinder_transform.matrix()));
         material_ubo.sub_data(BufferData::make_data(&cylinder_material));
 
-        glDrawElements(GL_TRIANGLES, cylinder_mesh_part.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(cylinder_mesh_part.index));
+        glDrawElements(GL_TRIANGLES, cylinder_submesh.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(cylinder_submesh.index));
 
         // ==================================================================================
 
