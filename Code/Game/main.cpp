@@ -76,24 +76,25 @@ int main()
     // ==================================================================================
 
     auto diffuse_vert_source = File::read<char>("../glsl/diffuse.vert.glsl");
-    auto diffuse_vert_instance_source = File::read<char>("../glsl/diffuse_instance.vert.glsl");
     auto diffuse_frag_source = File::read<char>("../glsl/diffuse.frag.glsl");
 
-    auto diffuse_vert_binary_source = File::read<std::byte>("../spv/diffuse.vert.spv");
-    auto diffuse_instance_vert_binary_source = File::read<std::byte>("../spv/diffuse_instance.vert.spv");
-    auto diffuse_frag_binary_source = File::read<std::byte>("../spv/diffuse.frag.spv");
+    auto diffuse_vert_binary = File::read<std::byte>("../spv/diffuse.vert.spv");
+    auto diffuse_frag_binary = File::read<std::byte>("../spv/diffuse.frag.spv");
+
+    auto diffuse_vert_instance_source = File::read<char>("../glsl/diffuse_instance.vert.glsl");
+    auto diffuse_vert_instance_binary = File::read<std::byte>("../spv/diffuse_instance.vert.spv");
 
     Shader diffuse_vert_shader {"diffuse.vert.glsl", GL_VERTEX_SHADER };
     diffuse_vert_shader.create();
-    diffuse_vert_shader.source(diffuse_vert_binary_source);
+    diffuse_vert_shader.source(diffuse_vert_binary);
 
     Shader diffuse_vert_instance_shader {"diffuse_instance.vert.glsl", GL_VERTEX_SHADER };
     diffuse_vert_instance_shader.create();
-    diffuse_vert_instance_shader.source(diffuse_instance_vert_binary_source);
+    diffuse_vert_instance_shader.source(diffuse_vert_instance_binary);
 
     Shader diffuse_frag_shader {"diffuse.frag.glsl", GL_FRAGMENT_SHADER };
     diffuse_frag_shader.create();
-    diffuse_frag_shader.source(diffuse_frag_binary_source);
+    diffuse_frag_shader.source(diffuse_frag_binary);
 
     Program diffuse_program;
     diffuse_program.create();
@@ -151,6 +152,7 @@ int main()
 
     auto cube_mesh_part     = scene_geometry.submeshes()[0];
     auto cylinder_mesh_part = scene_geometry.submeshes()[1];
+    auto sphere_mesh_part   = scene_geometry.submeshes()[2];
 
     // ==================================================================================
 
@@ -229,6 +231,7 @@ int main()
 
     Material cube_material     { { 1.0f, 1.0f, 0.0f } };
     Material cylinder_material { { 0.0f, 1.0f, 0.0f } };
+    Material sphere_material   { { 1.0f, 0.0f, 0.0f } };
 
     // ==================================================================================
 
@@ -239,6 +242,10 @@ int main()
     Buffer matrices_ubo {GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
     matrices_ubo.create();
     matrices_ubo.bind_at_location(0);
+
+    Buffer matrices_instance_buffer { GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
+    matrices_instance_buffer.create();
+    matrices_instance_buffer.bind_at_location(3);
 
     Buffer material_ubo {GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
     material_ubo.create();
@@ -271,17 +278,18 @@ int main()
     Transform ortho_camera_transform;
     Transform scene_camera_transform;
 
-    vec3 scene_camera_position {0.0f, 0.0f, -8.0f };
+    vec3 scene_camera_position {0.0f, 0.0f, -20.0f };
          scene_camera_transform.translate(scene_camera_position);
 
     // ==================================================================================
 
     Transform cube_transform;
     Transform cylinder_transform;
+    Transform sphere_transform;
     Transform square_transform;
 
-    vec3 cube_position     { -2.0f, 0.0f, 0.0f };
-    vec3 cylinder_position { 2.0f, 0.0f, 0.0f };
+    vec3 cube_position     { -3.0f, 0.0f, 0.0f };
+    vec3 cylinder_position { 3.0f, 0.0f, 0.0f };
 
     cylinder_transform.translate(cylinder_position);
     square_transform.translate({ 128.0f, 128.0f, 0.0f });
@@ -383,20 +391,42 @@ int main()
 
         // ==================================================================================
 
-        cube_transform.translate(cube_position)
-                      .rotate({ 0.0f, 1.0f, 0.0f }, total_time);
+        for (int32_t i = 0; i < 9; i++)
+        {
+            float value  = total_time + ((float)i * 0.7f);
+            float offset = 9.0f;
 
-        matrices[0] = cube_transform.matrix();
+            vec3 position = { std::sinf(value) * offset, std::cosf(value) * offset, 0.0f };
+            sphere_transform.translate(position);
+            matrices_instance[i] = sphere_transform.matrix();
+        }
+
+        matrices_instance_buffer.data(BufferData::make_data(matrices_instance));
+
+        // ==================================================================================
+
+        diffuse_instance_program.bind();
+
         matrices[1] = scene_camera_transform.matrix();
         matrices[2] = scene_camera.projection();
 
         matrices_ubo.sub_data(BufferData::make_data(matrices));
-        material_ubo.data(BufferData::make_data(&cube_material));
+        material_ubo.data(BufferData::make_data(&sphere_material));
         light_ubo.data(BufferData::make_data(&directional_light));
+
+        scene_vao.bind();
+        glDrawElementsInstanced(GL_TRIANGLES, sphere_mesh_part.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(sphere_mesh_part.index), 9);
+
+        // ==================================================================================
 
         diffuse_program.bind();
 
-        scene_vao.bind();
+        cube_transform.translate(cube_position)
+                      .rotate({ 0.0f, 1.0f, 0.0f }, total_time);
+
+        matrices_ubo.sub_data(BufferData::make_data(&cube_transform.matrix()));
+        material_ubo.sub_data(BufferData::make_data(&cube_material));
+
         glDrawElements(GL_TRIANGLES, cube_mesh_part.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(cube_mesh_part.index));
 
         // ==================================================================================

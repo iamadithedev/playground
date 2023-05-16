@@ -20,7 +20,7 @@ layout (binding = 3, std140) uniform u_matrices_instance
 
 void main()
 {
-    vec4 position = models[gl_BaseInstance] * vec4(in_position, 1.0);
+    vec4 position = models[gl_InstanceID] * vec4(in_position, 1.0);
     gl_Position   = proj  * view * position;
 
     //out_normal = mat3(transpose(inverse(model))) * in_normal;
