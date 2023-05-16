@@ -7,13 +7,13 @@
 #include "camera.hpp"
 #include "file.hpp"
 #include "material.hpp"
-#include "texture.hpp"
 #include "light.hpp"
 #include "physics.hpp"
 #include "physics_shapes.hpp"
 #include "mesh_importer.hpp"
 #include "texture_importer.hpp"
 #include "combine_geometry.hpp"
+#include "sampler.hpp"
 
 // ==================================================================================
 
@@ -160,14 +160,20 @@ int main()
 
     // ==================================================================================
 
-    Texture bricks_texture {GL_TEXTURE_2D };
+    Texture bricks_texture { GL_TEXTURE_2D };
     bricks_texture.create();
     bricks_texture.source(bricks_texture_data);
-
-    bricks_texture.parameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    bricks_texture.parameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
     bricks_texture_data.release();
+
+    // ==================================================================================
+
+    Sampler default_sampler;
+    default_sampler.create();
+
+    default_sampler.parameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    default_sampler.parameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    default_sampler.bind_at_location(0);
 
     // ==================================================================================
 
