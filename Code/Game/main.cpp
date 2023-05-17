@@ -1,7 +1,7 @@
 #include "transform.hpp"
 #include "buffer.hpp"
 #include "vertex_array.hpp"
-#include "program.hpp"
+#include "shader.hpp"
 #include "time.hpp"
 #include "render_pass.hpp"
 #include "camera.hpp"
@@ -10,10 +10,12 @@
 #include "light.hpp"
 #include "physics.hpp"
 #include "physics_shapes.hpp"
-#include "mesh_importer.hpp"
-#include "texture_importer.hpp"
 #include "combine_geometry.hpp"
 #include "sampler.hpp"
+#include "resource_manager.hpp"
+
+#include "importers/mesh_importer.hpp"
+#include "importers/texture_importer.hpp"
 
 // ==================================================================================
 
@@ -75,6 +77,13 @@ int main()
 
     // ==================================================================================
 
+    ResourceManager resources;
+    resources.init();
+
+    auto test = resources.load<Shader>("");
+
+    // ==================================================================================
+
     auto diffuse_vert_source = File::read<char>("../glsl/diffuse.vert.glsl");
     auto diffuse_frag_source = File::read<char>("../glsl/diffuse.frag.glsl");
 
@@ -84,35 +93,35 @@ int main()
     auto diffuse_vert_instance_source = File::read<char>("../glsl/diffuse_instance.vert.glsl");
     auto diffuse_vert_instance_binary = File::read<std::byte>("../spv/diffuse_instance.vert.spv");
 
-    Shader diffuse_vert_shader {"diffuse.vert.glsl", GL_VERTEX_SHADER };
+    ShaderStage diffuse_vert_shader { "diffuse.vert.glsl", GL_VERTEX_SHADER };
     diffuse_vert_shader.create();
     diffuse_vert_shader.source(diffuse_vert_binary);
 
-    Shader diffuse_vert_instance_shader {"diffuse_instance.vert.glsl", GL_VERTEX_SHADER };
+    ShaderStage diffuse_vert_instance_shader { "diffuse_instance.vert.glsl", GL_VERTEX_SHADER };
     diffuse_vert_instance_shader.create();
     diffuse_vert_instance_shader.source(diffuse_vert_instance_binary);
 
-    Shader diffuse_frag_shader {"diffuse.frag.glsl", GL_FRAGMENT_SHADER };
+    ShaderStage diffuse_frag_shader { "diffuse.frag.glsl", GL_FRAGMENT_SHADER };
     diffuse_frag_shader.create();
     diffuse_frag_shader.source(diffuse_frag_binary);
 
-    Program diffuse_program;
-    diffuse_program.create();
-    diffuse_program.attach(&diffuse_vert_shader);
-    diffuse_program.attach(&diffuse_frag_shader);
-    diffuse_program.link();
+    Shader diffuse_shader;
+    diffuse_shader.create();
+    diffuse_shader.attach(&diffuse_vert_shader);
+    diffuse_shader.attach(&diffuse_frag_shader);
+    diffuse_shader.link();
 
-    Program diffuse_instance_program;
-    diffuse_instance_program.create();
-    diffuse_instance_program.attach(&diffuse_vert_instance_shader);
-    diffuse_instance_program.attach(&diffuse_frag_shader);
-    diffuse_instance_program.link();
+    Shader diffuse_instance_shader;
+    diffuse_instance_shader.create();
+    diffuse_instance_shader.attach(&diffuse_vert_instance_shader);
+    diffuse_instance_shader.attach(&diffuse_frag_shader);
+    diffuse_instance_shader.link();
 
-    diffuse_program.detach(&diffuse_vert_shader);
-    diffuse_program.detach(&diffuse_frag_shader);
+    diffuse_shader.detach(&diffuse_vert_shader);
+    diffuse_shader.detach(&diffuse_frag_shader);
 
-    diffuse_instance_program.detach(&diffuse_vert_instance_shader);
-    diffuse_instance_program.detach(&diffuse_frag_shader);
+    diffuse_instance_shader.detach(&diffuse_vert_instance_shader);
+    diffuse_instance_shader.detach(&diffuse_frag_shader);
 
     diffuse_vert_shader.destroy();
     diffuse_vert_instance_shader.destroy();
@@ -123,22 +132,22 @@ int main()
     auto sprite_vert_source = File::read<char>("../glsl/sprite.vert.glsl");
     auto sprite_frag_source = File::read<char>("../glsl/sprite.frag.glsl");
 
-    Shader sprite_vert_shader {"sprite.vert.gsl", GL_VERTEX_SHADER };
+    ShaderStage sprite_vert_shader {"sprite.vert.gsl", GL_VERTEX_SHADER };
     sprite_vert_shader.create();
     sprite_vert_shader.source(sprite_vert_source.data());
 
-    Shader sprite_frag_shader {"sprite.frag.glsl", GL_FRAGMENT_SHADER };
+    ShaderStage sprite_frag_shader {"sprite.frag.glsl", GL_FRAGMENT_SHADER };
     sprite_frag_shader.create();
     sprite_frag_shader.source(sprite_frag_source.data());
 
-    Program sprite_program;
-    sprite_program.create();
-    sprite_program.attach(&sprite_vert_shader);
-    sprite_program.attach(&sprite_frag_shader);
-    sprite_program.link();
+    Shader sprite_shader;
+    sprite_shader.create();
+    sprite_shader.attach(&sprite_vert_shader);
+    sprite_shader.attach(&sprite_frag_shader);
+    sprite_shader.link();
 
-    sprite_program.detach(&sprite_vert_shader);
-    sprite_program.detach(&sprite_frag_shader);
+    sprite_shader.detach(&sprite_vert_shader);
+    sprite_shader.detach(&sprite_frag_shader);
 
     sprite_vert_shader.destroy();
     sprite_frag_shader.destroy();
@@ -389,7 +398,7 @@ int main()
 
         matrices_ubo.data(BufferData::make_data(matrices));
 
-        sprite_program.bind();
+        sprite_shader.bind();
         bricks_texture.bind();
 
         square_vao.bind();
@@ -411,7 +420,7 @@ int main()
 
         // ==================================================================================
 
-        diffuse_instance_program.bind();
+        diffuse_instance_shader.bind();
 
         matrices[1] = scene_camera_transform.matrix();
         matrices[2] = scene_camera.projection();
@@ -425,7 +434,7 @@ int main()
 
         // ==================================================================================
 
-        diffuse_program.bind();
+        diffuse_shader.bind();
 
         cube_transform.translate(cube_position)
                       .rotate({ 0.0f, 1.0f, 0.0f }, total_time);
