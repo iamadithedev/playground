@@ -1,0 +1,13 @@
+{
+  "binary": true,
+  "stages": [
+    {
+      "file": "spv/diffuse.vert.spv",
+      "type": 0
+    },
+    {
+      "file": "spv/diffuse.frag.spv",
+      "type": 1
+    }
+  ]
+}
