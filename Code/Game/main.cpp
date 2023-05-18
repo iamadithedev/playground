@@ -8,7 +8,7 @@
 #include "file.hpp"
 #include "material.hpp"
 #include "light.hpp"
-#include "physics.hpp"
+#include "physics_world.hpp"
 #include "physics_shapes.hpp"
 #include "combine_geometry.hpp"
 #include "sampler.hpp"
@@ -78,24 +78,17 @@ int main()
     // ==================================================================================
 
     ResourceManager resources;
-    resources.init();
+    resources.init("../");
 
-    auto test = resources.load<Shader>("");
+    auto diffuse_shader = resources.load<Shader>("diffuse_shader.json");
 
     // ==================================================================================
 
-    auto diffuse_vert_source = File::read<char>("../glsl/diffuse.vert.glsl");
     auto diffuse_frag_source = File::read<char>("../glsl/diffuse.frag.glsl");
-
-    auto diffuse_vert_binary = File::read<std::byte>("../spv/diffuse.vert.spv");
     auto diffuse_frag_binary = File::read<std::byte>("../spv/diffuse.frag.spv");
 
     auto diffuse_vert_instance_source = File::read<char>("../glsl/diffuse_instance.vert.glsl");
     auto diffuse_vert_instance_binary = File::read<std::byte>("../spv/diffuse_instance.vert.spv");
-
-    ShaderStage diffuse_vert_shader { "diffuse.vert.glsl", GL_VERTEX_SHADER };
-    diffuse_vert_shader.create();
-    diffuse_vert_shader.source(diffuse_vert_binary);
 
     ShaderStage diffuse_vert_instance_shader { "diffuse_instance.vert.glsl", GL_VERTEX_SHADER };
     diffuse_vert_instance_shader.create();
@@ -105,25 +98,15 @@ int main()
     diffuse_frag_shader.create();
     diffuse_frag_shader.source(diffuse_frag_binary);
 
-    Shader diffuse_shader;
-    diffuse_shader.create();
-    diffuse_shader.attach(&diffuse_vert_shader);
-    diffuse_shader.attach(&diffuse_frag_shader);
-    diffuse_shader.link();
-
     Shader diffuse_instance_shader;
     diffuse_instance_shader.create();
     diffuse_instance_shader.attach(&diffuse_vert_instance_shader);
     diffuse_instance_shader.attach(&diffuse_frag_shader);
     diffuse_instance_shader.link();
 
-    diffuse_shader.detach(&diffuse_vert_shader);
-    diffuse_shader.detach(&diffuse_frag_shader);
-
     diffuse_instance_shader.detach(&diffuse_vert_instance_shader);
     diffuse_instance_shader.detach(&diffuse_frag_shader);
 
-    diffuse_vert_shader.destroy();
     diffuse_vert_instance_shader.destroy();
     diffuse_frag_shader.destroy();
 
@@ -311,7 +294,7 @@ int main()
 
     // ==================================================================================
 
-    Physics physics;
+    PhysicsWorld physics;
     physics.init();
 
     auto cube_shape = PhysicsShapes::create_box({ 1.0f, 1.0f, 1.0f });
@@ -434,7 +417,7 @@ int main()
 
         // ==================================================================================
 
-        diffuse_shader.bind();
+        diffuse_shader->bind();
 
         cube_transform.translate(cube_position)
                       .rotate({ 0.0f, 1.0f, 0.0f }, total_time);
