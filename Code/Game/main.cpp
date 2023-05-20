@@ -141,10 +141,10 @@ int main()
     CombineGeometry scene_geometry;
     scene_geometry.combine(playground_geometries);
 
-    auto cube_submesh     = scene_geometry.submeshes()[0];
-    auto cylinder_submesh = scene_geometry.submeshes()[1];
-    auto sphere_submesh   = scene_geometry.submeshes()[2];
-    auto cone_submesh = scene_geometry.submeshes()[3];
+    auto& cube_submesh     = scene_geometry[0];
+    auto& cylinder_submesh = scene_geometry[1];
+    auto& sphere_submesh   = scene_geometry[2];
+    auto& cone_submesh     = scene_geometry[3];
 
     // ==================================================================================
 
