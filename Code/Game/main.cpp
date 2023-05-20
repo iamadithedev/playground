@@ -47,6 +47,8 @@ windows::PlatformFactory platform_factory;
 
 int main()
 {
+    std::cout << typeid(Shader).hash_code() << std::endl;
+
     int32_t width  = 1024;
     int32_t height = 768;
 
@@ -78,21 +80,18 @@ int main()
     // ==================================================================================
 
     ResourceManager resources;
-    resources.init("../");
+    resources.init("../Assets/");
 
     auto diffuse_shader = resources.load<Shader>("diffuse_shader.json");
 
     // ==================================================================================
 
-    auto diffuse_frag_source = File::read<char>("../glsl/diffuse.frag.glsl");
-    auto diffuse_frag_binary = File::read<std::byte>("../spv/diffuse.frag.spv");
-
-    auto diffuse_vert_instance_source = File::read<char>("../glsl/diffuse_instance.vert.glsl");
-    auto diffuse_vert_instance_binary = File::read<std::byte>("../spv/diffuse_instance.vert.spv");
+    auto diffuse_vert_binary = File::read<std::byte>("../Assets/spv/diffuse_instance.vert.spv");
+    auto diffuse_frag_binary = File::read<std::byte>("../Assets/spv/diffuse.frag.spv");
 
     ShaderStage diffuse_vert_instance_shader { "diffuse_instance.vert.glsl", GL_VERTEX_SHADER };
     diffuse_vert_instance_shader.create();
-    diffuse_vert_instance_shader.source(diffuse_vert_instance_binary);
+    diffuse_vert_instance_shader.source(diffuse_vert_binary);
 
     ShaderStage diffuse_frag_shader { "diffuse.frag.glsl", GL_FRAGMENT_SHADER };
     diffuse_frag_shader.create();
@@ -112,8 +111,8 @@ int main()
 
     // ==================================================================================
 
-    auto sprite_vert_source = File::read<char>("../glsl/sprite.vert.glsl");
-    auto sprite_frag_source = File::read<char>("../glsl/sprite.frag.glsl");
+    auto sprite_vert_source = File::read<char>("../Assets/glsl/sprite.vert.glsl");
+    auto sprite_frag_source = File::read<char>("../Assets/glsl/sprite.frag.glsl");
 
     ShaderStage sprite_vert_shader {"sprite.vert.gsl", GL_VERTEX_SHADER };
     sprite_vert_shader.create();
@@ -137,7 +136,7 @@ int main()
 
     // ==================================================================================
 
-    auto playground_geometries = MeshImporter::load("../playground.obj");
+    auto playground_geometries = MeshImporter::load("../Assets/playground.obj");
 
     CombineGeometry scene_geometry;
     scene_geometry.combine(playground_geometries);
@@ -148,7 +147,7 @@ int main()
 
     // ==================================================================================
 
-    auto bricks_texture_data = TextureImporter::load("../bricks.jpeg");
+    auto bricks_texture_data = TextureImporter::load("../Assets/bricks.jpeg");
 
     // ==================================================================================
 
@@ -389,10 +388,11 @@ int main()
 
         // ==================================================================================
 
+        float offset = 9.0f;
+
         for (int32_t i = 0; i < 9; i++)
         {
             float value  = total_time + ((float)i * 0.7f);
-            float offset = 9.0f;
 
             vec3 position = { std::sinf(value) * offset, std::cosf(value) * offset, 0.0f };
             sphere_transform.translate(position);
