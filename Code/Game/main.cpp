@@ -179,10 +179,12 @@ int main()
 
     Buffer scene_vbo { GL_ARRAY_BUFFER, GL_STATIC_DRAW };
     scene_vbo.create();
+    scene_vbo.bind();
     scene_vbo.data(BufferData::make_data(scene_geometry.vertices()));
 
     Buffer scene_ibo { GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
     scene_ibo.create();
+    scene_ibo.bind();
     scene_ibo.data(BufferData::make_data(scene_geometry.faces()));
 
     scene_vao.init_attributes_of_type<mesh_vertex::diffuse>(diffuse_vertex_attributes);
@@ -215,10 +217,12 @@ int main()
 
     Buffer square_vbo {GL_ARRAY_BUFFER, GL_STATIC_DRAW };
     square_vbo.create();
+    square_vbo.bind();
     square_vbo.data(BufferData::make_data(square_geometry.vertices()));
 
     Buffer square_ibo {GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW };
     square_ibo.create();
+    square_ibo.bind();
     square_ibo.data(BufferData::make_data(square_geometry.faces()));
 
     square_vao.init_attributes_of_type<mesh_vertex::sprite>(sprite_vertex_attributes);
@@ -236,19 +240,19 @@ int main()
 
     // ==================================================================================
 
-    Buffer matrices_ubo {GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
+    Buffer matrices_ubo {GL_UNIFORM_BUFFER, GL_DYNAMIC_DRAW };
     matrices_ubo.create();
     matrices_ubo.bind_at_location(0);
 
-    Buffer matrices_instance_buffer { GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
+    Buffer matrices_instance_buffer { GL_UNIFORM_BUFFER, GL_DYNAMIC_DRAW };
     matrices_instance_buffer.create();
     matrices_instance_buffer.bind_at_location(3);
 
-    Buffer material_ubo {GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
+    Buffer material_ubo {GL_UNIFORM_BUFFER, GL_DYNAMIC_DRAW };
     material_ubo.create();
     material_ubo.bind_at_location(1);
 
-    Buffer light_ubo {GL_UNIFORM_BUFFER, GL_STATIC_DRAW };
+    Buffer light_ubo {GL_UNIFORM_BUFFER, GL_DYNAMIC_DRAW };
     light_ubo.create();
     light_ubo.bind_at_location(2);
 
