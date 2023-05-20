@@ -144,6 +144,7 @@ int main()
     auto cube_submesh     = scene_geometry.submeshes()[0];
     auto cylinder_submesh = scene_geometry.submeshes()[1];
     auto sphere_submesh   = scene_geometry.submeshes()[2];
+    auto cone_submesh = scene_geometry.submeshes()[3];
 
     // ==================================================================================
 
@@ -229,6 +230,7 @@ int main()
     Material cube_material     { { 1.0f, 1.0f, 0.0f } };
     Material cylinder_material { { 0.0f, 1.0f, 0.0f } };
     Material sphere_material   { { 1.0f, 0.0f, 0.0f } };
+    Material cone_material     { { 0.0f, 0.0f, 1.0f } };
 
     // ==================================================================================
 
@@ -283,13 +285,16 @@ int main()
     Transform cube_transform;
     Transform cylinder_transform;
     Transform sphere_transform;
+    Transform cone_transform;
     Transform square_transform;
 
-    vec3 cube_position     { -3.0f, 0.0f, 0.0f };
-    vec3 cylinder_position { 3.0f, 0.0f, 0.0f };
+    vec3 cube_position     { -3.0f, -1.5f, 0.0f };
+    vec3 cylinder_position { 3.0f, -1.5f, 0.0f };
+    vec3 cone_position     { 0.0f, 3.0f, 0.0f };
 
     cylinder_transform.translate(cylinder_position);
     square_transform.translate({ 128.0f, 128.0f, 0.0f });
+    cone_transform.translate(cone_position);
 
     // ==================================================================================
 
@@ -433,6 +438,13 @@ int main()
         material_ubo.sub_data(BufferData::make_data(&cylinder_material));
 
         glDrawElements(GL_TRIANGLES, cylinder_submesh.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(cylinder_submesh.index));
+
+        // ==================================================================================
+
+        matrices_ubo.sub_data(BufferData::make_data(&cone_transform.matrix()));
+        material_ubo.sub_data(BufferData::make_data(&cone_material));
+
+        glDrawElements(GL_TRIANGLES, cone_submesh.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(cone_submesh.index));
 
         // ==================================================================================
 
