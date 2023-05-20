@@ -47,8 +47,6 @@ windows::PlatformFactory platform_factory;
 
 int main()
 {
-    std::cout << typeid(Shader).hash_code() << std::endl;
-
     int32_t width  = 1024;
     int32_t height = 768;
 
@@ -293,8 +291,8 @@ int main()
     vec3 cone_position     { 0.0f, 3.0f, 0.0f };
 
     cylinder_transform.translate(cylinder_position);
-    square_transform.translate({ 128.0f, 128.0f, 0.0f });
     cone_transform.translate(cone_position);
+    square_transform.translate({ 128.0f, 128.0f, 0.0f });
 
     // ==================================================================================
 
