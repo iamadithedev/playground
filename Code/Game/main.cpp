@@ -278,6 +278,9 @@ int32_t main()
     Camera ortho_camera;
     Camera scene_camera { 60.0f };
 
+    scene_camera.resize((float)width, (float)height);
+    ortho_camera.resize((float)width, (float)height);
+
     Transform ortho_camera_transform;
     Transform scene_camera_transform;
 
@@ -345,11 +348,19 @@ int32_t main()
 
         const float total_time = time.total_time();
 
-        width  = window->size().width;
-        height = window->size().height;
+        // ==================================================================================
 
-        scene_camera.resize((float)width, (float)height); // TODO this should take a size??
-        ortho_camera.resize((float)width, (float)height);
+        const int32_t new_width  = window->size().width;
+        const int32_t new_height = window->size().height;
+
+        if (width != new_width || height != new_height)
+        {
+            width  = new_width;
+            height = new_height;
+
+            scene_camera.resize((float)width, (float)height); // TODO this should take a size??
+            ortho_camera.resize((float)width, (float)height);
+        }
 
         // ==================================================================================
 
