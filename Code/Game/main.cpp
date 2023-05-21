@@ -23,8 +23,10 @@
 
 #include "assets/material_window.hpp"
 #include "assets/texture_window.hpp"
+
 #include "components/camera_window.hpp"
 #include "components/light_window.hpp"
+
 #include "render_pass_window.hpp"
 
 // ==================================================================================
@@ -35,24 +37,24 @@
 #include "glfw/platform_factory.hpp"
 #include "glfw/platform.hpp"
 
-glfw::PlatformFactory platform_factory;
+glfw::PlatformFactory factory;
 
 #else
 
 #include "Windows/platform_factory.hpp"
 
-windows::PlatformFactory platform_factory;
+windows::PlatformFactory factory;
 
 #endif
 
-int main()
+int32_t main()
 {
     int32_t width  = 1024;
     int32_t height = 768;
 
-    auto platform = platform_factory.create_platform();
-    auto window   = platform_factory.create_window("Playground", { width, height });
-    auto input    = platform_factory.create_input();
+    auto platform = factory.create_platform();
+    auto window   = factory.create_window("Playground", { width, height });
+    auto input    = factory.create_input();
 
     if (!platform->init())
     {
@@ -80,7 +82,7 @@ int main()
     ResourceManager resources;
     resources.init("../Assets/");
 
-    auto diffuse_shader = resources.load<Shader>("diffuse_shader.json");
+    auto diffuse_shader = resources.load<Shader>("diffuse_shader.asset");
 
     // ==================================================================================
 
@@ -229,24 +231,9 @@ int main()
 
     // ==================================================================================
 
-    Material cube_material     { { 1.0f, 1.0f, 0.0f } };
-    Material cylinder_material { { 0.0f, 1.0f, 0.0f } };
-    Material sphere_material   { { 1.0f, 0.0f, 0.0f } };
-    Material cone_material     { { 0.0f, 0.0f, 1.0f } };
-
-    // ==================================================================================
-
-    Light directional_light { { 0.0f, 0.0f, 5.0f }, { 1.0f, 1.0f, 1.0f } };
-
-    // ==================================================================================
-
     Buffer matrices_ubo {GL_UNIFORM_BUFFER, GL_DYNAMIC_DRAW };
     matrices_ubo.create();
     matrices_ubo.bind_at_location(0);
-
-    Buffer matrices_instance_buffer { GL_UNIFORM_BUFFER, GL_DYNAMIC_DRAW };
-    matrices_instance_buffer.create();
-    matrices_instance_buffer.bind_at_location(3);
 
     Buffer material_ubo {GL_UNIFORM_BUFFER, GL_DYNAMIC_DRAW };
     material_ubo.create();
@@ -255,6 +242,10 @@ int main()
     Buffer light_ubo {GL_UNIFORM_BUFFER, GL_DYNAMIC_DRAW };
     light_ubo.create();
     light_ubo.bind_at_location(2);
+
+    Buffer matrices_instance_buffer { GL_UNIFORM_BUFFER, GL_DYNAMIC_DRAW };
+    matrices_instance_buffer.create();
+    matrices_instance_buffer.bind_at_location(3);
 
     // ==================================================================================
 
@@ -265,6 +256,17 @@ int main()
 
     rgb clear_color { 0.45f, 0.55f, 0.60f };
     render_pass.clear_color(clear_color);
+
+    // ==================================================================================
+
+    Material cube_material     { { 1.0f, 1.0f, 0.0f } };
+    Material cylinder_material { { 0.0f, 1.0f, 0.0f } };
+    Material sphere_material   { { 1.0f, 0.0f, 0.0f } };
+    Material cone_material     { { 0.0f, 0.0f, 1.0f } };
+
+    // ==================================================================================
+
+    Light directional_light { { 0.0f, 0.0f, 5.0f }, { 1.0f, 1.0f, 1.0f } };
 
     // ==================================================================================
 
@@ -346,7 +348,7 @@ int main()
         width  = window->size().width;
         height = window->size().height;
 
-        scene_camera.resize((float)width, (float)height);
+        scene_camera.resize((float)width, (float)height); // TODO this should take a size??
         ortho_camera.resize((float)width, (float)height);
 
         // ==================================================================================
@@ -410,8 +412,6 @@ int main()
 
         // ==================================================================================
 
-        diffuse_instance_shader.bind();
-
         matrices[1] = scene_camera_transform.matrix();
         matrices[2] = scene_camera.projection();
 
@@ -419,18 +419,20 @@ int main()
         material_ubo.data(BufferData::make_data(&sphere_material));
         light_ubo.data(BufferData::make_data(&directional_light));
 
+        diffuse_instance_shader.bind();
         scene_vao.bind();
+
         glDrawElementsInstanced(GL_TRIANGLES, sphere_submesh.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(sphere_submesh.index), 9);
 
         // ==================================================================================
-
-        diffuse_shader->bind();
 
         cube_transform.translate(cube_position)
                       .rotate({ 0.0f, 1.0f, 0.0f }, total_time);
 
         matrices_ubo.sub_data(BufferData::make_data(&cube_transform.matrix()));
         material_ubo.sub_data(BufferData::make_data(&cube_material));
+
+        diffuse_shader->bind();
 
         glDrawElements(GL_TRIANGLES, cube_submesh.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(cube_submesh.index));
 
@@ -451,6 +453,8 @@ int main()
         // ==================================================================================
 
         editor.draw(&matrices_ubo);
+
+        // ==================================================================================
 
         window->update();
         platform->update();
