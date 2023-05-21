@@ -116,11 +116,11 @@ int32_t main()
 
     ShaderStage sprite_vert_shader {"sprite.vert.gsl", GL_VERTEX_SHADER };
     sprite_vert_shader.create();
-    sprite_vert_shader.source(sprite_vert_source.data());
+    sprite_vert_shader.source(sprite_vert_source);
 
     ShaderStage sprite_frag_shader {"sprite.frag.glsl", GL_FRAGMENT_SHADER };
     sprite_frag_shader.create();
-    sprite_frag_shader.source(sprite_frag_source.data());
+    sprite_frag_shader.source(sprite_frag_source);
 
     Shader sprite_shader;
     sprite_shader.create();
