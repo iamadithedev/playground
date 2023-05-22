@@ -83,6 +83,7 @@ int32_t main()
     resources.init("../Assets/");
 
     auto diffuse_shader = resources.load<Shader>("diffuse_shader.asset");
+    auto sprite_shader  = resources.load<Shader>("sprite_shader.asset");
 
     // ==================================================================================
 
@@ -108,31 +109,6 @@ int32_t main()
 
     diffuse_vert_instance_shader.destroy();
     diffuse_frag_shader.destroy();
-
-    // ==================================================================================
-
-    auto sprite_vert_source = File::read<char>("../Assets/glsl/sprite.vert.glsl");
-    auto sprite_frag_source = File::read<char>("../Assets/glsl/sprite.frag.glsl");
-
-    ShaderStage sprite_vert_shader {"sprite.vert.gsl", GL_VERTEX_SHADER };
-    sprite_vert_shader.create();
-    sprite_vert_shader.source(sprite_vert_source);
-
-    ShaderStage sprite_frag_shader {"sprite.frag.glsl", GL_FRAGMENT_SHADER };
-    sprite_frag_shader.create();
-    sprite_frag_shader.source(sprite_frag_source);
-
-    Shader sprite_shader;
-    sprite_shader.create();
-    sprite_shader.attach(&sprite_vert_shader);
-    sprite_shader.attach(&sprite_frag_shader);
-    sprite_shader.link();
-
-    sprite_shader.detach(&sprite_vert_shader);
-    sprite_shader.detach(&sprite_frag_shader);
-
-    sprite_vert_shader.destroy();
-    sprite_frag_shader.destroy();
 
     // ==================================================================================
 
@@ -394,20 +370,6 @@ int32_t main()
 
         // ==================================================================================
 
-        matrices[0] = square_transform.matrix();
-        matrices[1] = ortho_camera_transform.matrix();
-        matrices[2] = ortho_camera.projection();
-
-        matrices_ubo.data(BufferData::make_data(matrices));
-
-        sprite_shader.bind();
-        bricks_texture.bind();
-
-        square_vao.bind();
-        glDrawElements(GL_TRIANGLES, square_submesh.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(square_submesh.index));
-
-        // ==================================================================================
-
         float offset = 9.0f;
 
         for (int32_t i = 0; i < 9; i++)
@@ -423,10 +385,11 @@ int32_t main()
 
         // ==================================================================================
 
+        matrices[0] = glm::mat4 { 1.0f };
         matrices[1] = scene_camera_transform.matrix();
         matrices[2] = scene_camera.projection();
 
-        matrices_ubo.sub_data(BufferData::make_data(matrices));
+        matrices_ubo.data(BufferData::make_data(matrices));
         material_ubo.data(BufferData::make_data(&sphere_material));
         light_ubo.data(BufferData::make_data(&directional_light));
 
@@ -460,6 +423,20 @@ int32_t main()
         material_ubo.sub_data(BufferData::make_data(&cone_material));
 
         glDrawElements(GL_TRIANGLES, cone_submesh.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(cone_submesh.index));
+
+        // ==================================================================================
+
+        matrices[0] = square_transform.matrix();
+        matrices[1] = ortho_camera_transform.matrix();
+        matrices[2] = ortho_camera.projection();
+
+        matrices_ubo.sub_data(BufferData::make_data(matrices));
+
+        sprite_shader->bind();
+        bricks_texture.bind();
+
+        square_vao.bind();
+        glDrawElements(GL_TRIANGLES, square_submesh.count, GL_UNSIGNED_INT, reinterpret_cast<std::byte*>(square_submesh.index));
 
         // ==================================================================================
 

@@ -1,0 +1,14 @@
+{
+  "type": 11137319767511615510,
+  "binary": false,
+  "stages": [
+    {
+      "file": "glsl/sprite.vert.glsl",
+      "type": 0
+    },
+    {
+      "file": "glsl/sprite.frag.glsl",
+      "type": 1
+    }
+  ]
+}
